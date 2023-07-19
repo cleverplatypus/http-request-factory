@@ -160,6 +160,7 @@ describe('HTTP Tests', () => {
         .withTimeout(1000)
         .execute();
       } catch (e) {
+        console.warn(e);
         expect(e).toBeInstanceOf(HTTPError);
         expect(e.isAborted()).toBeTruthy();
       }
