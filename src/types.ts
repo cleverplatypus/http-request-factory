@@ -1,0 +1,76 @@
+import { HTTPRequest } from './HTTPRequest.ts';
+
+export type LogLevel = 'none' | 'trace' | 'debug' | 'info' | 'warn' | 'error';
+
+export type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'TRACE';
+
+export type ScalarType = string | number | boolean;
+
+export type ExpectedResponseFormat = 
+    'auto'
+    | 'json'
+    | 'text'
+    | 'blob'
+    | 'arrayBuffer';
+    
+export type QueryParameterValue =
+   ScalarType | Array<ScalarType>;
+
+export type DynamicHeader = string|((request:HTTPRequest)=>string);
+
+// export type MockResponse = 
+//     {
+//         status?: number
+//         body?: any
+//         headers?: Record<string, string>
+//         json : () => Promise<any>
+//         blob : () => Promise<Blob>
+//         arrayBuffer : () => Promise<ArrayBuffer>
+//         text : () => Promise<string>
+//         ok : boolean
+//     }
+
+export type ResponseHandler = 
+    (response:Response /*| MockResponse*/, requestObj:HTTPRequest) => Promise<any>
+
+export type ResponseInterceptor = 
+    (response:Response, requestObj:HTTPRequest) => Promise<any>
+
+export type RequestConfig = {
+    url: string
+    headers: Record<string, DynamicHeader>
+    body: any
+    timeout: number
+    method: HTTPMethod
+    logLevel: LogLevel
+    meta: Record<string, any>
+    queryParams: Object
+    credentials : RequestCredentials
+    uriEncodedBody : boolean
+    expectedResponseFormat: ExpectedResponseFormat
+    acceptedMIMETypes: string[]
+    corsMode: RequestMode
+    urlParams : Record<string, ScalarType | ((HTTPRequest) => ScalarType)>
+    // mockResponder?: (request:HTTPRequest, fetchRequest:RequestInit) => Promise<any> | null
+    responseInterceptor?: ResponseInterceptor
+    
+}
+
+export type Endpoint = {
+    target : string
+    method? : HTTPMethod
+    meta? : Record<string, any>
+}
+
+export type NamedEndpoint = {
+    name: string
+} & Endpoint;
+
+export type APIConfig = {
+    baseURL? : string | ((endpoint: Endpoint) => string)
+    name : string
+    meta? : Record<string, any>
+    endpoints : {
+        [endpointName: string]: Endpoint
+    }
+}

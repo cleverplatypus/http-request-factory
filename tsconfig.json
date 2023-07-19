@@ -1,0 +1,16 @@
+{
+    "type": "module",
+    "files": ["src/index.ts"],
+    "compilerOptions": {
+        "allowImportingTsExtensions": true,
+        "emitDeclarationOnly": true,
+        "declaration": true,
+        "target": "es2017",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "sourceMap": true,
+        "experimentalDecorators": true
+    }
+}
+
