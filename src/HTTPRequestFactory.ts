@@ -109,14 +109,6 @@ export class HTTPRequestFactory {
     return this;
   }
 
-  withMockResponder(mockResponder: Function) {
-    this.requestDefaults.push((request) =>
-      request.withMockResponder(mockResponder)
-    );
-
-    return this;
-  }
-
   /**
    * @param {Object} headers name-value pairs to set as default headers for all requests
    * If value is undefined, the corresponding header will be removed if present

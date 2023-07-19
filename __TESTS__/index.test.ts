@@ -115,6 +115,56 @@ describe('HTTP Tests', () => {
             expect(e.body).toEqual('Missing required header Authorization');
         }
     });
+
+    it('test_modified_response_from_interceptor', async () => {
+      const result = await factory
+        .createAPIRequest('simple-api', 'get-product-by-id')
+        .withURLParam('productId', '123')
+        .withResponseInterceptor(async (fetchResponse) => {
+          const data = await fetchResponse.json();
+          return {
+            wrapped : data
+          } 
+        })
+        .execute();
+      expect(result).toHaveProperty('wrapped');
+    });
+
+    it('test_untouched_response_through_interceptor', async () => {
+      const result = await factory
+        .createAPIRequest('simple-api', 'get-product-by-id')
+        .withURLParam('productId', '123')
+        .withResponseInterceptor(async (fetchResponse) => {
+        })
+        .execute();
+      expect(result).toHaveProperty('status', 'ok');
+    });
+
+    it('test_request_with_query_params', async () => {
+      const url = 'https://jsonplaceholder.typicode.com/posts';
+      const queryParams = {
+        userId: 1,
+        id: 1
+      };
+      const request = factory.createGETRequest(url);
+      request.withQueryParams(queryParams);
+      const response = await request.execute();
+      expect(response).toBeDefined();
+      expect(response.length).toBeGreaterThan(0);
+    });
+
+    it('test_timeout', async () => {
+      try {
+      await factory
+        .createGETRequest('http://localhost:8080/slow-response')
+        .withTimeout(1000)
+        .execute();
+      } catch (e) {
+        expect(e).toBeInstanceOf(HTTPError);
+        expect(e.isAborted()).toBeTruthy();
+      }
+        
+    });
   } catch (e) {
     console.log(e);
   }

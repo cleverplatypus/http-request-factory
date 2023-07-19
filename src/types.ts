@@ -18,20 +18,8 @@ export type QueryParameterValue =
 
 export type DynamicHeader = string|((request:HTTPRequest)=>string);
 
-// export type MockResponse = 
-//     {
-//         status?: number
-//         body?: any
-//         headers?: Record<string, string>
-//         json : () => Promise<any>
-//         blob : () => Promise<Blob>
-//         arrayBuffer : () => Promise<ArrayBuffer>
-//         text : () => Promise<string>
-//         ok : boolean
-//     }
-
 export type ResponseHandler = 
-    (response:Response /*| MockResponse*/, requestObj:HTTPRequest) => Promise<any>
+    (response:Response, requestObj:HTTPRequest) => Promise<any>
 
 export type ResponseInterceptor = 
     (response:Response, requestObj:HTTPRequest) => Promise<any>
@@ -51,7 +39,6 @@ export type RequestConfig = {
     acceptedMIMETypes: string[]
     corsMode: RequestMode
     urlParams : Record<string, ScalarType | ((HTTPRequest) => ScalarType)>
-    // mockResponder?: (request:HTTPRequest, fetchRequest:RequestInit) => Promise<any> | null
     responseInterceptor?: ResponseInterceptor
     
 }

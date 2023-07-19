@@ -5,12 +5,16 @@ import HTTPError from './HTTPError.ts';
 import {
   HTTPMethod,
   LogLevel,
-  // MockResponse,
   QueryParameterValue,
   RequestConfig,
   ResponseHandler,
+  ResponseInterceptor,
 } from './types.ts';
 
+/**
+ * HTTP Request. This class shouldn't be instanciated directly.
+ * Use {@link HTTPRequestFactory} createXXXRequest() instead
+ */
 export class HTTPRequest {
   private configBuilders: Function[];
   private wasUsed: boolean = false;
@@ -25,8 +29,7 @@ export class HTTPRequest {
   private readResponse = async (response: Response): Promise<any> => {
     const contentType = response.headers.get('content-type')?.split(/;\s?/)[0];
     if (!contentType) {
-      const error = `No content-type header found for response`;
-      this.logger.withLevel(this.config.logLevel).info(error);
+      this.getLogger().info(`No content-type header found for response`);
       return null;
     }
     if (/^application\/json/.test(contentType)) {
@@ -65,6 +68,10 @@ export class HTTPRequest {
     };
   }
 
+  private getLogger() {
+    return this.logger.withLevel(this.config.logLevel);
+  }
+
   private setupHeaders() {
     const headers = this.config.headers;
     for (let n in headers) {
@@ -80,19 +87,18 @@ export class HTTPRequest {
     if (this.config.timeout) {
       const controller = new AbortController();
       this.timeoutID = setTimeout(() => {
-        this.logger
-          .withLevel(this.config.logLevel)
-          .debug(
-            'HttpRequestFactory : Fetch timeout',
-            `Request timeout after ${this.config.timeout / 1000} seconds`
-          );
+        this.getLogger().debug(
+          'HttpRequestFactory : Fetch timeout',
+          `Request timeout after ${this.config.timeout / 1000} seconds`
+        );
         controller.abort();
       }, this.config.timeout);
       this.fetchBody!.signal = controller.signal;
     }
-    this.logger
-      .withLevel(this.config.logLevel)
-      .debug('HttpRequestFactory : Fetch invoked', this.fetchBody);
+    this.getLogger().debug(
+      'HttpRequestFactory : Fetch invoked',
+      this.fetchBody
+    );
   }
 
   private setupQueryParams() {
@@ -136,7 +142,7 @@ export class HTTPRequest {
         'HttpRequests cannot be reused. Please call a request factory method for every new call'
       );
     }
-    const logger = this.logger.withLevel(this.config.logLevel);
+    const logger = this.getLogger();
 
     this.configBuilders.forEach((config) => {
       config(this);
@@ -163,16 +169,6 @@ export class HTTPRequest {
 
     let response;
     try {
-      // if (this.config.mockResponder) {
-      //   const mockResponse = await this.config.mockResponder(this, this.fetchBody);
-      //   if (mockResponse !== undefined) {
-      //     if (this.config.responseInterceptor) {
-      //       return this.config.responseInterceptor(buildMockResponse(mockResponse))
-      //     }
-      //     return mockResponse;
-      //   }
-      // }
-
       logger.debug(
         'HttpRequestFactory : Fetch url to be called',
         this.config.url
@@ -194,21 +190,23 @@ export class HTTPRequest {
         return await this.readResponse(response);
       } else {
         return Promise.reject(
-          new HTTPError(response.status, response.statusText, await this.readResponse(response)));
+          new HTTPError(
+            response.status,
+            response.statusText,
+            await this.readResponse(response)
+          )
+        );
       }
     } catch (error) {
-      this.logger
-        .withLevel(this.config.logLevel)
-        .error('HttpRequestFactory : Fetch error', {
-          type: 'fetch-error',
-          endpoint: this.config.url,
-          details: error,
-        });
-      return Promise.reject({
-        body: {
-          message: 'Network request failed',
-        },
+      if (error.name === 'AbortError') {
+        return Promise.reject(new HTTPError(-1, 'Request aborted'));
+      }
+      logger.error('HttpRequestFactory : Fetch error', {
+        type: 'fetch-error',
+        endpoint: this.config.url,
+        details: error,
       });
+      return Promise.reject(error);
     } finally {
       clearTimeout(this.timeoutID);
     }
@@ -231,13 +229,6 @@ export class HTTPRequest {
     this.config.credentials = config;
     return this;
   }
-
-  // withMockResponder(
-  //   mockResponder: (request: HTTPRequest) => Promise<any> | null
-  // ) {
-  //   this.config.mockResponder = mockResponder;
-  //   return this;
-  // }
 
   withUriEncodedBody() {
     this.config.uriEncodedBody = true;
@@ -285,13 +276,11 @@ export class HTTPRequest {
         this.config.body = JSON.stringify(json);
         return this;
     }
-    this.logger
-      .withLevel(this.config.logLevel)
-      .error(
-        'POSTHttpRequest.withJSONBody',
-        'Passed body is not a valid JSON string',
-        json
-      );
+    this.getLogger().error(
+      'POSTHttpRequest.withJSONBody',
+      'Passed body is not a valid JSON string',
+      json
+    );
     return this;
   }
 
@@ -368,7 +357,7 @@ export class HTTPRequest {
    * This can be defined if, to override the default behaviour for HTTP status handling.
    * The callback signature is `function(response:Object, requestObj:HttpRequest)`
    */
-  withResponseInterceptor(handler: ResponseHandler): HTTPRequest {
+  withResponseInterceptor(handler: ResponseInterceptor): HTTPRequest {
     this.config.responseInterceptor = handler;
     return this;
   }

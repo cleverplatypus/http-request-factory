@@ -10,6 +10,14 @@ router.get('/shutdown', async (ctx: Context) => {
   ctx.response.body = 'shutting down...'
 })
 
+router.get('/slow-response', async (ctx: Context) => {
+  await new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(`it's late`);
+    }, 2000);
+  });
+})
+
 router.all('/api/concatenate', async (ctx: Context) => {
   const result = ctx.request.body();
   const array = await result.value;

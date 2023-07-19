@@ -44,4 +44,12 @@ export default class HTTPError {
     isNotImplemented(): boolean {
         return this.code === 501;
     }
+
+    isTimedOut(): boolean {
+        return this.code === 504;
+    }
+
+    isAborted(): boolean {
+        return this.code === -1;
+    }
 }
