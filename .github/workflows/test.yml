@@ -24,6 +24,6 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - uses: denolib/setup-deno@v2.3.0
       - run: yarn
-      - run: deno run --allow-all __TESTS__/server.ts
+      - run: deno run --allow-all __TESTS__/server.ts &
       - run: yarn test
       - run: curl http://localhost:8080/shutdown
