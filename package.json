@@ -1,9 +1,10 @@
 {
   "name": "http-request-factory",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "index.js",
   "license": "MIT",
   "type": "module",
+  "repository": "https://github.com/cleverplatypus/http-request-factory",
   "scripts": {
     "test": "node --experimental-fetch node_modules/.bin/jest"
   },
