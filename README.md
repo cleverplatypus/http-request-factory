@@ -1,10 +1,21 @@
 # HTTP Request Factory
 
-![Tests](https://github.com/cleverplatypus/http-request-factory/actions/workflows/test.yml/badge.svg)
+![GitHub release](https://img.shields.io/github/v/release/cleverplatypus/http-request-factory?filter=*&label=Version)
+&nbsp;&nbsp;![](https://github.com/cleverplatypus/http-request-factory/actions/workflows/test.yml/badge.svg)
 
 A wrapper for the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to simplify handling of HTTP requests.
 
+Works in the web browser and on Node.js from v17.5 with the `--experimental-fetch` flag set.
+
 It provides a method-chain interface to setup request and  configuration-driven API handling.
+
+### Browser compatibility
+
+The library uses
+- [FetchAPI](https://caniuse.com/fetch)
+- [Proxy Object](https://caniuse.com/proxy)
+- [TypeScript](https://www.typescriptlang.org)
+
 
 ## Installation
 ```sh
@@ -35,11 +46,13 @@ const data = await factory
 
 ## Using an API
 
-It's possible to define a group of endpoints that live at the same base URL by creating an api configuration:
+It's possible to define a group of endpoints that live at the same base URL by creating an API configuration:
 
 ```ts
 //api-config.ts
-export default [{
+import {APIConfig} from 'http-request-factory';
+
+const apis : APIConfig[] = [{
         name : 'aws',
         baseURL : 'https://aws.mydomain.com/a09dsjas0j9df0asj0fads9jdsj9',
         endpoints : {
@@ -61,6 +74,8 @@ export default [{
         }
 
     }];
+
+export default apis;
 ```
 
 The APIs can then be attached to the request factory using `factory.withAPIConfig()` and requests can be created using `factory.createAPIRequest(apiName, endpointName)`
@@ -73,7 +88,7 @@ When a passed value in configuration methods is a function, its value will be re
 
 
 ```ts
-//http-factory.ts
+//request-factory.ts
 import { HTTPRequestFactory } from 'http-request-factory';
 import apis from './api-config.ts'
 //...
@@ -99,15 +114,19 @@ Endpoint target paths can contain params in the form of `{{paramName}}` that can
 
 ```ts
 //some-controller.ts
-import httpFactory from './http-factory.ts';
+import requestFactory from './request-factory.ts';
 
-const awsData = await factory
+const awsData = await requestFactory
     .createAPIRequest('aws', 'get-products')
     .execute();
 
-const myAPIData = await factory
+const myAPIData = await requestFactory
     .createAPIRequest('my-api', 'get-product-info')
     .withURLParam('productID', 123)
     .execute();
 ```
 
+## Testing
+The test suite is written in Jest and requires [Deno](https://deno.land)
+
+![](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)&nbsp;&nbsp;![](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)&nbsp;&nbsp;![](https://img.shields.io/badge/Jest-323330?style=for-the-badge&logo=Jest&logoColor=white)&nbsp;&nbsp;![](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
