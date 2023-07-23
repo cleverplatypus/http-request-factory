@@ -3,6 +3,7 @@ import ILogger from './ILogger.ts';
 import { TEXT_TYPES } from './constants.ts';
 import HTTPError from './HTTPError.ts';
 import {
+  HeaderValue,
   HTTPMethod,
   LogLevel,
   QueryParameterValue,
@@ -325,7 +326,7 @@ export class HTTPRequest {
    * @param {Object} headers name-value pairs to set as headers
    * If value is undefined, the corresponding header will be removed if present
    */
-  withHeaders(headers: Headers) {
+  withHeaders(headers: Record<string, HeaderValue>) {
     if (typeof headers === 'object') {
       Object.assign(this.config.headers, headers);
     }
@@ -337,7 +338,7 @@ export class HTTPRequest {
    * @param {String} name header name
    * @param {*} value the value for the header, omit this parameter to remove the header
    */
-  withHeader(name: string, value: any) {
+  withHeader(name: string, value: HeaderValue) {
     this.config.headers[name] = value;
     return this;
   }

@@ -3,7 +3,7 @@ import { HTTPRequest } from './HTTPRequest.ts';
 import ILogger from './ILogger.ts';
 import {
   APIConfig,
-  DynamicHeader,
+  HeaderValue,
   Endpoint,
   HTTPMethod,
   LogLevel,
@@ -113,7 +113,7 @@ export class HTTPRequestFactory {
    * @param {Object} headers name-value pairs to set as default headers for all requests
    * If value is undefined, the corresponding header will be removed if present
    */
-  withHeaders(headers: { [key: string]: DynamicHeader }) {
+  withHeaders(headers: Record<string, HeaderValue>) {
     if (typeof headers === 'object') {
       for (const name of Object.keys(headers)) {
         this.requestDefaults.push((request: HTTPRequest) =>
@@ -166,7 +166,7 @@ export class HTTPRequestFactory {
     return this.createRequest(url, 'TRACE');
   }
 
-  createRequest(url: string, method: HTTPMethod) {
+  createRequest(url: string, method: HTTPMethod = 'GET') {
     return new HTTPRequest(url, method, this.requestDefaults);
   }
 
@@ -186,8 +186,8 @@ export class HTTPRequestFactory {
       (api.meta || {}),
       (endpoint.meta || {}),
     );
-    return this[`create${(endpoint.method || 'GET').toUpperCase()}Request`](
-      url
-    ).withMeta(meta);
+    return this.createRequest( url, endpoint.method)
+      .withMeta(meta)
+      .withHeaders(api.headers || {});
   }
 }
