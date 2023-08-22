@@ -56,6 +56,7 @@ export class HTTPRequest {
       headers: {},
       body: null,
       timeout: 0,
+      ignoreResponseBody : false,
       uriEncodedBody: false,
       method,
       credentials: 'same-origin',
@@ -113,10 +114,6 @@ export class HTTPRequest {
   }
 
   private setupBody() {
-    if (!['POST', 'PUT', 'PATCH'].includes(this.config.method)) {
-      return;
-    }
-
     if (this.config.body && this.config.uriEncodedBody) {
       this.logger.trace(
         'HttpRequestFactory : URI-Encoding body',
@@ -188,6 +185,9 @@ export class HTTPRequest {
         }
       }
       if (response.ok) {
+        if(this.config.ignoreResponseBody || response.status === 204) {
+          return;
+        }
         return await this.readResponse(response);
       } else {
         return Promise.reject(
@@ -257,11 +257,6 @@ export class HTTPRequest {
   }
 
   withJSONBody(json: any) {
-    if (!['POST', 'PUT', 'PATCH'].includes(this.config.method)) {
-      throw new Error(
-        'JSON body is only supported for POST/PUT/PATCH requests'
-      );
-    }
     this.withHeader('content-type', 'application/json');
     switch (typeof json) {
       case 'string':
@@ -287,6 +282,11 @@ export class HTTPRequest {
 
   withAcceptAny() {
     this.config.acceptedMIMETypes = ['*/*'];
+    return this;
+  }
+
+  ignoreResponseBody(){
+    this.config.ignoreResponseBody = true;
     return this;
   }
 

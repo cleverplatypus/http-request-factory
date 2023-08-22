@@ -36,6 +36,7 @@ export type RequestConfig = {
     logLevel: LogLevel
     meta: Record<string, any>
     queryParams: Object
+    ignoreResponseBody: boolean
     credentials : RequestCredentials
     uriEncodedBody : boolean
     expectedResponseFormat: ExpectedResponseFormat
