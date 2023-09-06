@@ -5,10 +5,10 @@ const router = new Router();
 
 router.get('/shutdown', async (ctx: Context) => {
   setTimeout(() => {
-    Deno.exit(); 
+    Deno.exit();
   });
-  ctx.response.body = 'shutting down...'
-})
+  ctx.response.body = 'shutting down...';
+});
 
 router.get('/slow-response', async (ctx: Context) => {
   await new Promise((resolve) => {
@@ -16,7 +16,7 @@ router.get('/slow-response', async (ctx: Context) => {
       resolve(`it's late`);
     }, 2000);
   });
-})
+});
 
 router.all('/api/concatenate', async (ctx: Context) => {
   const result = ctx.request.body();
@@ -34,18 +34,32 @@ router.get('/api/product/:productId', async (ctx: Context) => {
   };
 });
 
+router.get('/api/products', async (ctx: Context) => {
+  ctx.response.body = {
+    status: 'ok',
+    data: {
+      '123': {
+        name: 'Product 123',
+      },
+      '456': {
+        name : 'Product 456',
+      }
+    },
+  };
+});
+
 router.get('/admin/product/:productId', async (ctx: Context) => {
-    console.log(ctx.request.headers.get('Authorization')),
+  console.log(ctx.request.headers.get('Authorization')),
     console.log(ctx.request.headers.get('x-api-key'));
   if (
     ctx.request.headers.get('Authorization') !== 'Bearer the-access-token' ||
     ctx.request.headers.get('x-api-key') !== 'the-api-key'
   ) {
     ctx.response.status = 401;
-    ctx.response.body = 'Missing required header Authorization'
+    ctx.response.body = 'Missing required header Authorization';
     return;
   }
-  console.log('request is ok')
+  console.log('request is ok');
   ctx.response.body = {
     status: 'ok',
     data: {

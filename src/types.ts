@@ -36,6 +36,7 @@ export type RequestConfig = {
     logLevel: LogLevel
     meta: Record<string, any>
     queryParams: Object
+    bodyTransformer?: (body: any, request:HTTPRequest) => any
     ignoreResponseBody: boolean
     credentials : RequestCredentials
     uriEncodedBody : boolean
@@ -62,6 +63,7 @@ export type APIConfig = {
     name : string
     meta? : Record<string, any>,
     headers? : Record<string, HeaderValue>,
+    bodyTransformer? : (body: any, request:HTTPRequest) => any
     endpoints : {
         [endpointName: string]: Endpoint
     }

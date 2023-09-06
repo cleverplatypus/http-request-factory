@@ -178,16 +178,22 @@ export class HTTPRequestFactory {
     const endpoint: Endpoint = api.endpoints[endpointName];
 
     const url = getEndpointURL(endpoint, api);
-    const meta = Object.assign({
-      api: {
-        name: api.name,
-        baseURL: api.baseURL,
-      }},
-      (api.meta || {}),
-      (endpoint.meta || {}),
+    const meta = Object.assign(
+      {
+        api: {
+          name: api.name,
+          baseURL: api.baseURL,
+        },
+      },
+      api.meta || {},
+      endpoint.meta || {}
     );
-    return this.createRequest( url, endpoint.method)
+    const request = this.createRequest(url, endpoint.method)
       .withMeta(meta)
       .withHeaders(api.headers || {});
+    if (api.bodyTransformer) {
+      request.withBodyTransformer(api.bodyTransformer);
+    }
+    return request;
   }
 }

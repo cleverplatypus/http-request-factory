@@ -11,6 +11,7 @@ import {
   ResponseHandler,
   ResponseInterceptor,
 } from './types.ts';
+import deepFreeze from 'deep-freeze-strict';
 
 /**
  * HTTP Request. This class shouldn't be instanciated directly.
@@ -188,7 +189,11 @@ export class HTTPRequest {
         if(this.config.ignoreResponseBody || response.status === 204) {
           return;
         }
-        return await this.readResponse(response);
+        const body = await this.readResponse(response);
+        if(this.config.bodyTransformer) {
+          return this.config.bodyTransformer(body, this);
+        }
+        return body;
       } else {
         return Promise.reject(
           new HTTPError(
@@ -211,6 +216,15 @@ export class HTTPRequest {
     } finally {
       clearTimeout(this.timeoutID);
     }
+  }
+
+  /**
+   * Retrieves a read-only copy of configuration.
+   *
+   * @return {type} The frozen configuration object.
+   */
+  getConfig() {
+    return deepFreeze(this.config);
   }
 
   withMeta(param1: string | Record<string, any>, param2?: any) {
@@ -330,6 +344,11 @@ export class HTTPRequest {
     if (typeof headers === 'object') {
       Object.assign(this.config.headers, headers);
     }
+    return this;
+  }
+
+  withBodyTransformer(transformer: (body: any, request:HTTPRequest) => any) {
+    this.config.bodyTransformer = transformer;
     return this;
   }
 
