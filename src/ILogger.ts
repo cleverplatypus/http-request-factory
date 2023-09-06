@@ -1,3 +1,8 @@
+
+/**
+ * @public
+ * An interface for logger adapters.
+ */
 export default interface ILogger {
     withLevel(level: string): ILogger;
     trace(message: string, ...args: any[]): void;

@@ -12,7 +12,7 @@ factory
     {
       name: 'simple-api',
       baseURL: 'http://localhost:8080/api',
-      bodyTransformer: (body, request) => {
+      responseBodyTransformer: (body, request) => {
         const url = new URL(request.getConfig().url);
         console.warn(url.pathname);
         if (url.pathname === '/api/products') {
