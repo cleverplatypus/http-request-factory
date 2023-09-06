@@ -1,5 +1,6 @@
 import HTTPError from '../src/HTTPError.ts';
 import { HTTPRequestFactory } from '../src/index.ts';
+import {describe, expect, it} from 'vitest';
 
 const sessionModel = {
   accessToken: 'the-access-token',
