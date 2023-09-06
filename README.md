@@ -3,6 +3,8 @@
 ![GitHub release](https://img.shields.io/github/v/release/cleverplatypus/http-request-factory?filter=*&label=Version)
 &nbsp;&nbsp;![](https://github.com/cleverplatypus/http-request-factory/actions/workflows/test.yml/badge.svg)
 
+> Check the [API Docs here](https://cleverplatypus.github.io/http-request-factory/)
+
 A wrapper for the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to simplify handling of HTTP requests.
 
 Works in the web browser and on Node.js from v17.5 with the `--experimental-fetch` flag set.
