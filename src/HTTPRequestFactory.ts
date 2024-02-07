@@ -284,7 +284,8 @@ export class HTTPRequestFactory {
     );
     const request = this.createRequest(url, endpoint.method)
       .withMeta(meta)
-      .withHeaders(api.headers || {});
+      .withHeaders(api.headers || {})
+      .withQueryParams(api.queryParams || {});
     if (api.responseBodyTransformer) {
       request.withResponseBodyTransformer(api.responseBodyTransformer);
     }

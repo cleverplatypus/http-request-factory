@@ -110,7 +110,9 @@ export type APIConfig = {
      * An optional {@link ResponseBodyTransformer} function to be applied to all of
      * the API's responses.
      */
-    responseBodyTransformer? : ResponseBodyTransformer
+    responseBodyTransformer? : ResponseBodyTransformer,
+
+    queryParams : Record<string, QueryParameterValue>
 
     /**
      * A map of {@link Endpoint} for the API
