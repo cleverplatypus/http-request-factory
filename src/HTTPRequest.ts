@@ -375,7 +375,6 @@ export class HTTPRequest {
       throw new Error('No composer callback provided');
     }
   ): HTTPRequest {
-    this.withHeader('content-type', 'multipart/form-data');
     this.config.body = () => {
       const formData = new FormData();
       composerCallBack(formData);
