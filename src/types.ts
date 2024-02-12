@@ -112,7 +112,7 @@ export type APIConfig = {
      */
     responseBodyTransformer? : ResponseBodyTransformer,
 
-    queryParams : Record<string, QueryParameterValue>
+    queryParams? : Record<string, QueryParameterValue>
 
     /**
      * A map of {@link Endpoint} for the API
