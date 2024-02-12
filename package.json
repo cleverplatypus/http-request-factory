@@ -1,6 +1,6 @@
 {
   "name": "http-request-factory",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "main": "src/index.ts",
   "license": "MIT",
   "type": "module",
@@ -9,7 +9,7 @@
     "type": "git"
   },
   "scripts": {
-    "test": "vitest"
+    "test": "deno run --allow-all __TESTS__/server.ts & sleep 1 && vitest"
   },
   "devDependencies": {
     "@types/node": "^20.4.2",

@@ -10,7 +10,7 @@ import {
   QueryParameterValue,
   RequestConfig,
   ResponseBodyTransformer,
-  ResponseInterceptor
+  ResponseInterceptor,
 } from './types.ts';
 
 /**
@@ -115,14 +115,20 @@ export class HTTPRequest {
   }
 
   private setupBody() {
-    if (this.config.body && this.config.uriEncodedBody) {
-      this.logger.trace(
-        'HttpRequestFactory : URI-Encoding body',
-        this.config.body
-      );
-      this.config.body = encodeURIComponent(this.config.body);
-    }
-    this.fetchBody.body = this.config.body;
+    if (!this.config.body) return;
+    const encode = (body) => {
+      if (this.config.uriEncodedBody) {
+        this.logger.trace(
+          'HttpRequestFactory : URI-Encoding body',
+          this.config.body
+        );
+
+        return encodeURIComponent(body());
+      }
+      return body;
+    };
+
+    this.fetchBody.body = encode(this.config.body());
   }
 
   private setupURL() {
@@ -335,26 +341,46 @@ export class HTTPRequest {
    */
   withJSONBody(json: any) {
     this.withHeader('content-type', 'application/json');
-    switch (typeof json) {
-      case 'string':
-        try {
-          JSON.parse(json);
-          this.config.body = json;
-          return this;
-        } catch {
-          //do nothing. logging below
-        }
-        break;
-      case 'object':
-        this.config.body = JSON.stringify(json);
-        return this;
-    }
-    this.getLogger().error(
-      'POSTHttpRequest.withJSONBody',
-      'Passed body is not a valid JSON string',
-      json
-    );
+    this.config.body = () => {
+      switch (typeof json) {
+        case 'string':
+          try {
+            JSON.parse(json);
+
+            return json;
+          } catch {
+            //do nothing. logging below
+          }
+          break;
+        case 'object':
+          return JSON.stringify(json);
+      }
+      this.getLogger().error(
+        'POSTHttpRequest.withJSONBody',
+        'Passed body is not a valid JSON string',
+        json
+      );
+    };
     return this;
+  }
+
+  /**
+   * Set the request body to a FormData object and allows customizing the form data before sending the request.
+   *
+   * @param {Function} composerCallBack - the callback function that customizes the FormData object
+   * @return {void} 
+   */
+  withFormDataBody(
+    composerCallBack: (formData: FormData) => void = () => {
+      throw new Error('No composer callback provided');
+    }
+  ) {
+    this.withHeader('content-type', 'multipart/form-data');
+    this.config.body = () => {
+      const formData = new FormData();
+      composerCallBack(formData);
+      return formData;
+    };
   }
 
   /**
@@ -399,7 +425,7 @@ export class HTTPRequest {
     this.config.corsMode = 'no-cors';
     return this;
   }
-  
+
   /**
    * Adds a query parameter to the request.
    *
@@ -434,8 +460,8 @@ export class HTTPRequest {
   /**
    * @param {Object} headers name-value pairs to set as headers
    * If value is undefined, the corresponding header will be removed if present
-    * @return {HTTPRequest} - The updated request instance.
-  */
+   * @return {HTTPRequest} - The updated request instance.
+   */
   withHeaders(headers: Record<string, HeaderValue>) {
     if (typeof headers === 'object') {
       Object.assign(this.config.headers, headers);
@@ -452,12 +478,12 @@ export class HTTPRequest {
    * @param {ResponseBodyTransformer} transformer - The function to transform the body.
    * @param {HTTPRequest} request - The HTTP request object.
    * @return {object} - The updated instance of the class.
-   * 
+   *
    * @example
    * factory.withAPIConfig({
    *    name : 'some-api',
    *    responseBodyTransformer : (body, request) => {
-   *         //the response.details is a JSON string that we want 
+   *         //the response.details is a JSON string that we want
    *         //to parse before the app receives the response
    *         body.details = JSON.parse(body.details)
    *         return body;
@@ -468,7 +494,7 @@ export class HTTPRequest {
    *       }
    *    }
    * };
-   *  
+   *
    * const response = factory
    *    .createAPIRequest('some-api', 'get-stuff')
    *    .execute();
@@ -493,8 +519,8 @@ export class HTTPRequest {
   /**
    *
    * @param {Number} timeout milliseconds to wait before failing the request as timed out
-    * @return {HTTPRequest} - The updated request instance.
-  */
+   * @return {HTTPRequest} - The updated request instance.
+   */
   withTimeout(timeout: number) {
     this.config.timeout = timeout;
     return this;

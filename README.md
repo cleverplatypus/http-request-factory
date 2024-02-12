@@ -7,7 +7,10 @@
 
 A wrapper for the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to simplify handling of HTTP requests.
 
-Works in the web browser and on Node.js from v17.5 with the `--experimental-fetch` flag set.
+Works in:
+ - the web browser [natively](https://caniuse.com/mdn-api_fetch) 
+ - in Deno (via `esm.sh`) 
+ - in Node.js from v17.5 (with the `--experimental-fetch` flag set before v18).
 
 It provides a method-chain interface to setup request and  configuration-driven API handling.
 
@@ -30,8 +33,16 @@ npm i http-request-factory
 
 ## Basic Usage
 ```ts
+// node / bundlers
 import { HTTPRequestFactory } from 'http-request-factory';
+```
 
+```ts
+// deno
+import {HTTPRequestFactory} from 'https://esm.sh/http-request-factory';
+```
+
+```ts
 //...
 
 const factory = new HTTPRequestFactory()
@@ -95,7 +106,7 @@ import { HTTPRequestFactory } from 'http-request-factory';
 import apis from './api-config.ts'
 //...
 
-const factory = new HTTPRequestFactory()
+export default new HTTPRequestFactory()
     .withLogLevel(myenv.LOG_LEVEL)
     .withAPIConfig(...apis)
     .when((request) => { //set a condition for the next settings
@@ -109,7 +120,6 @@ const factory = new HTTPRequestFactory()
     .always() //resets the condition
     .withHeader('x-powered-by', (request) => request.meta.poweredBy);
 
-export default factory;
 ```
 
 Endpoint target paths can contain params in the form of `{{paramName}}` that can be substituted using `request.withURLParam(paramName, value)`. Useful, for instance, to wrap REST APIs.
@@ -129,6 +139,6 @@ const myAPIData = await requestFactory
 ```
 
 ## Testing
-The test suite is written in Jest and requires [Deno](https://deno.land)
+The test suite is written in Vitest and requires [Deno](https://deno.land)
 
-![](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)&nbsp;&nbsp;![](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)&nbsp;&nbsp;![](https://img.shields.io/badge/Jest-323330?style=for-the-badge&logo=Jest&logoColor=white)&nbsp;&nbsp;![](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
+![](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)&nbsp;&nbsp;![](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)&nbsp;&nbsp;![](https://img.shields.io/badge/Vitest-grey?style=for-the-badge&logo=vitest&logoColor=white)&nbsp;&nbsp;![](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
