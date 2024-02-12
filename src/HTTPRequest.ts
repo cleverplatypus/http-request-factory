@@ -368,19 +368,20 @@ export class HTTPRequest {
    * Set the request body to a FormData object and allows customizing the form data before sending the request.
    *
    * @param {Function} composerCallBack - the callback function that customizes the FormData object
-   * @return {void} 
+   * @return {HTTPRequest} 
    */
   withFormDataBody(
     composerCallBack: (formData: FormData) => void = () => {
       throw new Error('No composer callback provided');
     }
-  ) {
+  ): HTTPRequest {
     this.withHeader('content-type', 'multipart/form-data');
     this.config.body = () => {
       const formData = new FormData();
       composerCallBack(formData);
       return formData;
     };
+    return this;
   }
 
   /**
