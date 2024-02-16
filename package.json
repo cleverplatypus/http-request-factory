@@ -1,9 +1,10 @@
 {
   "name": "http-request-factory",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "main": "src/index.ts",
   "license": "MIT",
   "type": "module",
+  "types": "lib/index.d.ts",
   "repository": {
     "url": "https://github.com/cleverplatypus/http-request-factory",
     "type": "git"
