@@ -116,19 +116,7 @@ export class HTTPRequest {
 
   private setupBody() {
     if (!this.config.body) return;
-    const encode = (body) => {
-      if (this.config.uriEncodedBody) {
-        this.logger.trace(
-          'HttpRequestFactory : URI-Encoding body',
-          this.config.body
-        );
-
-        return encodeURIComponent(body());
-      }
-      return body;
-    };
-
-    this.fetchBody.body = encode(this.config.body());
+    this.fetchBody.body = this.config.body();
   }
 
   private setupURL() {
@@ -331,6 +319,13 @@ export class HTTPRequest {
   withURLParams(params: Record<string, QueryParameterValue>) {
     Object.assign(this.config.urlParams, params);
     return this;
+  }
+
+  withFormEncodedBody(data:string) {
+    this.withHeader('content-type', 'application/x-www-form-urlencoded');
+    this.config.body = () => {
+      return encodeURIComponent(data);
+    }
   }
 
   /**
