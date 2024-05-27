@@ -18,7 +18,7 @@ router.get('/slow-response', async (ctx: Context) => {
   });
 });
 
-router.all('/api/concatenate', async (ctx: Context) => {
+router.post('/api/concatenate', async (ctx: Context) => {
   console.warn('------------------------------------------');
   console.warn(ctx.request.body);
   console.warn('------------------------------------------');
