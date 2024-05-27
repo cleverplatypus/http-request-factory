@@ -26,5 +26,6 @@ jobs:
         with:
           deno-version: vx.x.x
       - run: yarn
+      - run: deno --version
       - run: yarn test
       - run: yarn shut-down-test-server
