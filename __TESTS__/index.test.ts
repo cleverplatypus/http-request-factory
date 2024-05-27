@@ -79,22 +79,22 @@ describe('HTTP Tests', () => {
       expect(response.data[1].id).toBe('456');
     })
 
-    // it('test_put_request', async () => {
-    //   const array = ['words', 'to', 'concatenate'];
-    //   const response = await factory
-    //     .createPUTRequest('http://localhost:8080/api/concatenate')
-    //     .withJSONBody(array)
-    //     .execute();
-    //   expect(response).toEqual(array.join(' '));
-    // });
-    // it('test_patch_request', async () => {
-    //   const array = ['words', 'to', 'concatenate'];
-    //   const response = await factory
-    //     .createPATCHRequest('http://localhost:8080/api/concatenate')
-    //     .withJSONBody(array)
-    //     .execute();
-    //   expect(response).toEqual(array.join(' '));
-    // });
+    it('test_put_request', async () => {
+      const array = ['words', 'to', 'concatenate'];
+      const response = await factory
+        .createPUTRequest('http://localhost:8080/api/concatenate')
+        .withJSONBody(array)
+        .execute();
+      expect(response).toEqual(array.join(' '));
+    });
+    it('test_patch_request', async () => {
+      const array = ['words', 'to', 'concatenate'];
+      const response = await factory
+        .createPATCHRequest('http://localhost:8080/api/concatenate')
+        .withJSONBody(array)
+        .execute();
+      expect(response).toEqual(array.join(' '));
+    });
     it('test_get_api_request_with_param', async () => {
       const result = await factory
         .createAPIRequest('simple-api', 'get-product-by-id')

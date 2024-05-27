@@ -18,13 +18,9 @@ router.get('/slow-response', async (ctx: Context) => {
   });
 });
 
-router.post('/api/concatenate', async (ctx: Context) => {
-  console.warn('------------------------------------------');
-  console.warn(ctx.request.body);
-  console.warn('------------------------------------------');
-  const result = ctx.request.body();
-  const array = await result.value;
-  ctx.response.body = array.join(' ');
+router.all('/api/concatenate', async (ctx: Context) => {
+  const result = await ctx.request.body.json();
+  ctx.response.body = result.join(' ');
 });
 
 router.get('/api/product/:productId', async (ctx: Context) => {
