@@ -22,7 +22,9 @@ jobs:
 
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: denolib/setup-deno@v2.3.0
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: vx.x.x
       - run: yarn
       - run: yarn test
       - run: yarn shut-down-test-server
