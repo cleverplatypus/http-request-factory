@@ -2,6 +2,13 @@ import { HTTPRequest } from './HTTPRequest.ts';
 export type LogLevel = 'none' | 'trace' | 'debug' | 'info' | 'warn' | 'error';
 export type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'TRACE';
 export type ScalarType = string | number | boolean;
+export type InterceptorStatus = 'pass' | 'canceled' | 'last';
+export type InterceptorCommands = {
+    deleteInterceptor: () => void;
+    replaceURL: (url: string) => void;
+};
+export type RequestInterceptor = (request: HTTPRequest, commands: InterceptorCommands) => Promise<any | undefined>;
+export type RequestDefaults = (request: HTTPRequest) => void;
 /**
  * @internal
  */
@@ -33,6 +40,7 @@ export type RequestConfig = {
     corsMode: RequestMode;
     urlParams: Record<string, ScalarType | ((HTTPRequest: any) => ScalarType)>;
     responseInterceptor?: ResponseInterceptor;
+    requestInterceptors?: RequestInterceptor[];
 };
 /**
  * The definition of an API endpoint to be listed in the {@link APIConfig.endpoints} map

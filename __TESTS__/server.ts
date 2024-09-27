@@ -48,8 +48,6 @@ router.get('/api/products', async (ctx: Context) => {
 });
 
 router.get('/admin/product/:productId', async (ctx: Context) => {
-  console.log(ctx.request.headers.get('Authorization')),
-    console.log(ctx.request.headers.get('x-api-key'));
   if (
     ctx.request.headers.get('Authorization') !== 'Bearer the-access-token' ||
     ctx.request.headers.get('x-api-key') !== 'the-api-key'
@@ -58,7 +56,6 @@ router.get('/admin/product/:productId', async (ctx: Context) => {
     ctx.response.body = 'Missing required header Authorization';
     return;
   }
-  console.log('request is ok');
   ctx.response.body = {
     status: 'ok',
     data: {

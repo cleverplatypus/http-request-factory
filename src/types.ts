@@ -5,9 +5,17 @@ export type LogLevel = 'none' | 'trace' | 'debug' | 'info' | 'warn' | 'error';
 
 export type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'TRACE';
 
-
 export type ScalarType = string | number | boolean;
 
+export type InterceptorStatus = 'pass' | 'canceled' | 'last';
+
+export type InterceptorCommands = {
+    deleteInterceptor: () => void
+    replaceURL: (url:string) => void
+}
+
+export type RequestInterceptor = (request:HTTPRequest, commands:InterceptorCommands) => Promise<any | undefined>;
+export type RequestDefaults = (request : HTTPRequest) => void;
 /**
  * @internal
  */
@@ -28,10 +36,10 @@ export type ResponseBodyTransformer = (body: any, request: HTTPRequest) => any;
 export type HeaderValue = string|DynamicHeaderValue;
 
 export type ResponseHandler = 
-    (response:Response, requestObj:HTTPRequest) => Promise<any>
+    (response:Response, requestObj:HTTPRequest) => Promise<any>;
 
 export type ResponseInterceptor = 
-    (response:Response, requestObj:HTTPRequest) => Promise<any>
+    (response:Response, requestObj:HTTPRequest) => Promise<any>;
 
 /**
  * Internal representation of a {@link HTTPRequest}'s configuration
@@ -54,6 +62,7 @@ export type RequestConfig = {
     corsMode: RequestMode
     urlParams : Record<string, ScalarType | ((HTTPRequest) => ScalarType)>
     responseInterceptor?: ResponseInterceptor
+    requestInterceptors?: RequestInterceptor[]
     
 }
 

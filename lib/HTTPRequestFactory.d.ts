@@ -1,6 +1,6 @@
-import { HTTPRequest } from './HTTPRequest.ts';
-import ILogger from './ILogger.ts';
-import { APIConfig, HeaderValue, HTTPMethod, LogLevel } from './types.ts';
+import { HTTPRequest } from "./HTTPRequest.ts";
+import ILogger from "./ILogger.ts";
+import { APIConfig, HeaderValue, HTTPMethod, LogLevel, RequestInterceptor } from "./types.ts";
 /**
  * A factory for creating {@link HTTPRequest} instances.
  * It can be configured with defaults, logging options as well as
@@ -11,6 +11,7 @@ export declare class HTTPRequestFactory {
     private apiConfigs;
     private logger;
     private logLevel;
+    private interceptorsToRequestDefaults;
     /**
      * Resets any conditions in the method chain set by {@link when}
      * @returns {HTTPRequestFactory} the factory instance
@@ -31,6 +32,7 @@ export declare class HTTPRequestFactory {
      *  .withHeader('X-PoweredBy', 'Me')
      */
     when(condition: (request: HTTPRequest) => boolean): this;
+    deleteRequestInterceptor(interceptor: RequestInterceptor): void;
     /**
      * Sets the logger adapter for the instance for every request created.
      * By default the logger will be set by the factory to the internal `ConsoleLogger` adapter.
@@ -75,6 +77,7 @@ export declare class HTTPRequestFactory {
      * @returns {HTTPRequestFactory} the factory instance
      */
     withLogLevel(level: LogLevel): this;
+    withRequestInterceptor(interceptor: RequestInterceptor): this;
     /**
      * Adds a response body transformer to the factory defaults.
      *

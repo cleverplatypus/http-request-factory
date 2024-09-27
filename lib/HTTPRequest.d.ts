@@ -1,5 +1,12 @@
-import ILogger from './ILogger.ts';
-import { HeaderValue, HTTPMethod, LogLevel, QueryParameterValue, RequestConfig, ResponseBodyTransformer, ResponseInterceptor } from './types.ts';
+import ILogger from "./ILogger.ts";
+import { HeaderValue, HTTPMethod, LogLevel, QueryParameterValue, RequestConfig, RequestInterceptor, ResponseBodyTransformer, ResponseInterceptor } from "./types.ts";
+import { HTTPRequestFactory } from "./HTTPRequestFactory.ts";
+type RequestConstructorArgs = {
+    url: string;
+    method: HTTPMethod;
+    defaultConfigBuilders: Function[];
+    factory: HTTPRequestFactory;
+};
 /**
  * HTTP Request. This class shouldn't be instanciated directly.
  * Use {@link HTTPRequestFactory} createXXXRequest() instead
@@ -11,12 +18,13 @@ export declare class HTTPRequest {
     private config;
     private timeoutID?;
     private fetchBody;
+    private factory;
     /**
      * Returns the fetch response content in its appropriate format
      * @param {Response} response
      */
     private readResponse;
-    constructor(url: string, method: HTTPMethod, defaultConfigBuilders: Function[]);
+    constructor({ url, method, defaultConfigBuilders, factory }: RequestConstructorArgs);
     private getLogger;
     private setupHeaders;
     private setupTimeout;
@@ -95,6 +103,18 @@ export declare class HTTPRequest {
      */
     withURLParams(params: Record<string, QueryParameterValue>): this;
     withFormEncodedBody(data: string): this;
+    /**
+     * Adds a request interceptor to the request configuration.
+     * Interceptors are executed in the order they are added.
+     * - If a request interceptor returns a rejected promise, the request will fail.
+     * - If a request interceptor returns a resolved promise, the promise's result will be used as the response.
+     * - If the interceptor returns `undefined`, the request will continue to the next interceptor, if present or to the regular request handling
+     * - the interceptor's second parameter is is a function that can be used to remove the interceptor from further request handling
+     *
+     * @param {RequestInterceptor} interceptor - The interceptor to add.
+     * @return {HTTPRequest} - The updated request instance.
+     */
+    withRequestInterceptor(interceptor: RequestInterceptor): void;
     /**
      * Set the request body as a JSON object or string.
      *
@@ -221,4 +241,5 @@ export declare class HTTPRequest {
      */
     get meta(): Record<string, any>;
 }
+export {};
 //# sourceMappingURL=HTTPRequest.d.ts.map

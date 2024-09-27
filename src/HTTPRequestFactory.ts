@@ -1,6 +1,6 @@
-import ConsoleLogger from './ConsoleLogger.ts';
-import { HTTPRequest } from './HTTPRequest.ts';
-import ILogger from './ILogger.ts';
+import ConsoleLogger from "./ConsoleLogger.ts";
+import { HTTPRequest } from "./HTTPRequest.ts";
+import ILogger from "./ILogger.ts";
 import {
   APIConfig,
   HeaderValue,
@@ -8,7 +8,10 @@ import {
   HTTPMethod,
   LogLevel,
   ResponseBodyTransformer,
-} from './types.ts';
+  RequestInterceptor,
+  InterceptorCommands,
+  RequestDefaults,
+} from "./types.ts";
 
 function getEndpointURL(endpoint: Endpoint, api: APIConfig) {
   if (/^(https?:)?\/\//.test(endpoint.target)) {
@@ -17,7 +20,7 @@ function getEndpointURL(endpoint: Endpoint, api: APIConfig) {
   let base: string | null = null;
   if (api.baseURL) {
     base =
-      typeof api.baseURL === 'function' ? api.baseURL(endpoint) : api.baseURL;
+      typeof api.baseURL === "function" ? api.baseURL(endpoint) : api.baseURL;
   }
 
   return base ? `${base}${endpoint.target}` : endpoint.target;
@@ -29,12 +32,15 @@ function getEndpointURL(endpoint: Endpoint, api: APIConfig) {
  * conditional settings using {@link when} in a method-chain fashion.
  */
 export class HTTPRequestFactory {
-  private requestDefaults: Function[] = [];
+  private requestDefaults: RequestDefaults[] = [];
   private apiConfigs: { [key: string]: APIConfig } = {};
   private logger: ILogger = new ConsoleLogger();
-  private logLevel: LogLevel = 'error';
+  private logLevel: LogLevel = "error";
+  private interceptorsToRequestDefaults: Map<
+    RequestInterceptor,
+    RequestDefaults
+  > = new Map();
 
-  
   /**
    * Resets any conditions in the method chain set by {@link when}
    * @returns {HTTPRequestFactory} the factory instance
@@ -49,27 +55,27 @@ export class HTTPRequestFactory {
    *
    * @param {function} condition - A function that takes a HTTPRequest object and returns whether or not to apply the condition.
    * @return {HTTPRequestFactory} - A proxy to the factory instance that allows the conditional configuration
-   * 
+   *
    * @example
    * factory
    *  .when((request) => request.meta.requiresAuth)
    *  .withHeader('Authorization', 'some-token')
    *  .always()
-   *  .withHeader('X-PoweredBy', 'Me') 
+   *  .withHeader('X-PoweredBy', 'Me')
    */
   when(condition: (request: HTTPRequest) => boolean) {
     const proxy = new Proxy(this, {
       get: (target, prop) => {
-        if (prop === 'always') {
+        if (prop === "always") {
           return () => target;
         }
 
-        if (prop === 'when') {
+        if (prop === "when") {
           return (condition: (request: HTTPRequest) => boolean) =>
             target.when(condition);
         }
 
-        if (typeof target[prop] !== 'function') {
+        if (typeof target[prop] !== "function") {
           return target[prop];
         }
 
@@ -88,6 +94,13 @@ export class HTTPRequestFactory {
     return proxy;
   }
 
+  deleteRequestInterceptor(interceptor: RequestInterceptor) {
+    const requestDefaults = this.interceptorsToRequestDefaults.get(interceptor);
+    this.requestDefaults.splice(
+      this.requestDefaults.indexOf(requestDefaults),
+      1
+    );
+  }
 
   /**
    * Sets the logger adapter for the instance for every request created.
@@ -171,19 +184,39 @@ export class HTTPRequestFactory {
   }
 
   /**
+   * Adds a request interceptor to the request configuration.
+   * Interceptors are executed in the order they are added.
+   * - If a request interceptor returns a rejected promise, the request will fail.
+   * - If a request interceptor returns a resolved promise, the promise's result will be used as the response.
+   * - If the interceptor returns `undefined`, the request will continue to the next interceptor, if present or to the regular request handling
+   * - the interceptor's second parameter is contains commands {@link InterceptorCommands} to replace the requests URL or to completely remove the interceptor from configuration
+   *
+   * @param {RequestInterceptor} interceptor - The interceptor to add.
+   * @return {HTTPRequest} - The updated request instance.
+   */
+  withRequestInterceptor(interceptor: RequestInterceptor) {
+    const defaultFn = (request: HTTPRequest) =>
+      request.withRequestInterceptor(interceptor);
+    this.requestDefaults.push(defaultFn);
+    this.interceptorsToRequestDefaults.set(interceptor, defaultFn);
+    return this;
+  }
+
+  /**
    * Adds a response body transformer to the factory defaults.
    *
    * @param {ResponseBodyTransformer} transformer - The function that will be used to transform the response body.
    * @returns {HTTPRequestFactory} the factory instance
    */
-  withResponseBodyTransformer(transformer: (body: any, request:HTTPRequest) => any) {
+  withResponseBodyTransformer(
+    transformer: (body: any, request: HTTPRequest) => any
+  ) {
     this.requestDefaults.push((request: HTTPRequest) =>
       request.withResponseBodyTransformer(transformer)
     );
     return this;
   }
 
-  
   /**
    * Adds the provided headers to the factory defaults.
    *
@@ -191,7 +224,7 @@ export class HTTPRequestFactory {
    * @returns {HTTPRequestFactory} the factory instance
    */
   withHeaders(headers: Record<string, HeaderValue>) {
-    if (typeof headers === 'object') {
+    if (typeof headers === "object") {
       for (const name of Object.keys(headers)) {
         this.requestDefaults.push((request: HTTPRequest) =>
           request.withHeader(name, headers[name])
@@ -206,14 +239,14 @@ export class HTTPRequestFactory {
    * @param {String} url
    */
   createPOSTRequest(url: string) {
-    return this.createRequest(url, 'POST');
+    return this.createRequest(url, "POST");
   }
   /**
    * Factory method for creating GET requests
    * @param {String} url
    */
   createGETRequest(url: string) {
-    return this.createRequest(url, 'GET');
+    return this.createRequest(url, "GET");
   }
 
   /**
@@ -221,51 +254,57 @@ export class HTTPRequestFactory {
    * @param {String} url
    */
   createPUTRequest(url: string) {
-    return this.createRequest(url, 'PUT');
+    return this.createRequest(url, "PUT");
   }
   /**
    * Factory method for creating DELETE requests
    * @param {String} url
    */
   createDELETERequest(url: string) {
-    return this.createRequest(url, 'DELETE');
+    return this.createRequest(url, "DELETE");
   }
 
   createPATCHRequest(url: string) {
-    return this.createRequest(url, 'PATCH');
+    return this.createRequest(url, "PATCH");
   }
 
   createHEADRequest(url: string) {
-    return this.createRequest(url, 'HEAD');
+    return this.createRequest(url, "HEAD");
   }
 
   createTRACERequest(url: string) {
-    return this.createRequest(url, 'TRACE');
+    return this.createRequest(url, "TRACE");
   }
 
-  createRequest(url: string, method: HTTPMethod = 'GET') {
-    return new HTTPRequest(url, method, this.requestDefaults);
+  createRequest(url: string, method: HTTPMethod = "GET") {
+    return new HTTPRequest({
+      url,
+      method,
+      defaultConfigBuilders: this.requestDefaults,
+      factory: this,
+    });
   }
 
-/**
- * Creates a {@link HTTPRequest} with configuration based on the given {@link APIConfig}'s name and endpoint name.
- * It also populates the request's meta with info about the API and endpoint inside `request.meta.api` 
- * merging in any meta defined in the api config's `api.meta` and `endpoint.meta`.
- * @param {string} apiName - The name of the API.
- * @param {string} endpointName - The name of the endpoint.
- * @return {HTTPRequest} The created request.
- * 
- * @example
- * factory.createAPIRequest('my-api', 'my-endpoint')
- *    .withQueryParam('key', 'value')
- *    .withHeader('X-PoweredBy', 'Me')
- *    .execute();
- */
+  /**
+   * Creates a {@link HTTPRequest} with configuration based on the given {@link APIConfig}'s name and endpoint name.
+   * It also populates the request's meta with info about the API and endpoint inside `request.meta.api`
+   * merging in any meta defined in the api config's `api.meta` and `endpoint.meta`.
+   * @param {string} apiName - The name of the API.
+   * @param {string} endpointName - The name of the endpoint.
+   * @return {HTTPRequest} The created request.
+   *
+   * @example
+   * factory.createAPIRequest('my-api', 'my-endpoint')
+   *    .withQueryParam('key', 'value')
+   *    .withHeader('X-PoweredBy', 'Me')
+   *    .execute();
+   */
   createAPIRequest(...args: [string, string] | [string]): HTTPRequest {
-    const [apiName, endpointName] = args.length === 1 ? ['default', args[0]] : args;
+    const [apiName, endpointName] =
+      args.length === 1 ? ["default", args[0]] : args;
     this.logger
       .withLevel(this.logLevel)
-      .trace('Creating API request', apiName, endpointName);
+      .trace("Creating API request", apiName, endpointName);
     const api = this.apiConfigs[apiName];
     const endpoint: Endpoint = api?.endpoints[endpointName];
     if (!endpoint) {
