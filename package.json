@@ -1,6 +1,6 @@
 {
   "name": "http-request-factory",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "main": "src/index.ts",
   "license": "MIT",
   "type": "module",
@@ -11,9 +11,11 @@
   },
   "scripts": {
     "test": "deno run --allow-all __TESTS__/server.ts & sleep 1 && vitest",
-    "shut-down-test-server" : "curl http://localhost:8080/shutdown"
+    "shut-down-test-server": "curl http://localhost:8080/shutdown",
+    "generate-docs" : "npx typedoc"
   },
   "devDependencies": {
+    "@jsprismarine/typedoc-material-theme": "^1.0.4",
     "@types/node": "^20.4.2",
     "typescript": "^5.1.6",
     "vitest": "^0.34.3"

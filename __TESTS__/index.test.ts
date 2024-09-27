@@ -1,4 +1,5 @@
 import HTTPError from "../src/HTTPError.ts";
+import { HTTPRequest } from "../src/HTTPRequest.ts";
 import { HTTPRequestFactory } from "../src/index.ts";
 import { describe, expect, it } from "vitest";
 
@@ -251,4 +252,51 @@ describe("HTTP Tests", () => {
     expect(result.id).toEqual(1);
     expect(result._localResponse).toBeUndefined();
   });
+});
+
+it("test_request_interceptor_from_api_config", async () => {
+  const fixtures = {
+    users: () => {
+      return {
+        type: "user",
+      };
+    },
+    posts: () => {
+      return {
+        type: "post",
+      };
+    },
+  };
+  const factory = new HTTPRequestFactory().withLogLevel("debug").withAPIConfig({
+    name: "default",
+    requestInterceptors: [
+     (request: HTTPRequest) => {
+      const entity = request.meta.api.endpoint.target.replace(/^\//, "").replace(/\/\d+/, "");
+        if (entity && fixtures[entity]) {
+          return fixtures[entity]();
+        }
+      },
+    ],
+    baseURL : "https://jsonplaceholder.typicode.com",
+    endpoints: {
+      getUser: {
+        target: "/users/1",
+      },
+      getPost: {
+        target: "/posts/1",
+      },
+      getToDo: {
+        target: "/todos/1",
+      }
+    }
+  });
+
+  let result = await factory.createAPIRequest("getUser").execute();
+  expect(result).toHaveProperty("type", "user");
+
+  result = await factory.createAPIRequest("getPost").execute();
+  expect(result).toHaveProperty("type", "post");
+
+  result = await factory.createAPIRequest("getToDo").execute();
+  expect(result.type).toBeUndefined();
 });

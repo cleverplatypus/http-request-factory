@@ -195,8 +195,9 @@ export class HTTPRequestFactory {
    * @return {HTTPRequest} - The updated request instance.
    */
   withRequestInterceptor(interceptor: RequestInterceptor) {
-    const defaultFn = (request: HTTPRequest) =>
+    const defaultFn = function(request: HTTPRequest) {
       request.withRequestInterceptor(interceptor);
+    }
     this.requestDefaults.push(defaultFn);
     this.interceptorsToRequestDefaults.set(interceptor, defaultFn);
     return this;
@@ -312,22 +313,40 @@ export class HTTPRequestFactory {
     }
 
     const url = getEndpointURL(endpoint, api);
-    const meta = Object.assign(
-      {
-        api: {
-          name: api.name,
-          baseURL: api.baseURL,
-        },
+    const meta = {
+      api: {
+        name: api.name,
+        baseURL: api.baseURL,
+        endpoint,
+        endpointName,
       },
-      api.meta || {},
-      endpoint.meta || {}
-    );
+    };
+    Object.defineProperty(meta, "api", {
+      writable: false,
+      configurable: false,
+      enumerable: true,
+    });
+
+    
+    try {
+       Object.assign(meta, api.meta || {}, endpoint.meta || {});
+    } catch (e) {
+      this.logger.error(
+        "Unable to merge meta. You're probably trying to assign the reserved `api` property name to meta",
+        e
+      );
+    }
     const request = this.createRequest(url, endpoint.method)
       .withMeta(meta)
       .withHeaders(api.headers || {})
       .withQueryParams(api.queryParams || {});
     if (api.responseBodyTransformer) {
       request.withResponseBodyTransformer(api.responseBodyTransformer);
+    }
+    if (api.requestInterceptors?.length) {
+      for (const interceptor of api.requestInterceptors) {
+          request.withRequestInterceptor(interceptor);
+      }
     }
     return request;
   }

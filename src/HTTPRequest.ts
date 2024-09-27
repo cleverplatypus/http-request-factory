@@ -83,6 +83,15 @@ export class HTTPRequest {
     };
   }
 
+  /**
+   * Gets the URL of the request.
+   *
+   * @returns {string} the URL of the request
+   */
+  get url() {
+    return this.config.url;
+  }
+  
   private getLogger() {
     return this.logger.withLevel(this.config.logLevel);
   }

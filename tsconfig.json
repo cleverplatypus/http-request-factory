@@ -17,6 +17,13 @@
         "forceConsistentCasingInFileNames": true,
         "experimentalDecorators": true
     },
+    "typedocOptions": {
+        "entryPoints": ["src/index.ts", "src/HTTPRequest.ts"],
+        "out": "docs",
+        "plugin" : ["@jsprismarine/typedoc-material-theme"],
+        "theme": "default",
+        "themeColor": "#cb9820",
+    },
     "include": ["src/**/*"],
     "exclude": ["node_modules"],
 }

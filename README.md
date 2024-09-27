@@ -138,6 +138,56 @@ const myAPIData = await requestFactory
     .execute();
 ```
 
+## Request Interceptors
+Request interceptors can be used to:
+- adjust the request object before it's executed
+- add caching capabilities to an API
+- testing with mock data
+
+Interceptors can be added [at factory](https://cleverplatypus.github.io/http-request-factory/classes/HTTPRequestFactory.html#withRequestInterceptor) or [at API config](https://cleverplatypus.github.io/http-request-factory/types/APIConfig.html) level and are executed in the order they're declared.
+
+If an interceptor returns undefined, the next interceptor, if any, will be evaluated or the request will be processed normally.
+
+```typescript
+factory.withRequestInterceptor((request : HTTPRequest) => {
+    if(/app-master-data/.test(request.url) && env.IS_DEV) {
+        return {
+            some : 'dev specific data'
+        }
+    }
+})
+```
+
+
+```typescript
+
+const api : APIConfig = {
+    name : 'default',
+    baseURL : '/api',
+    requestInterceptors : [
+        (request : HTTPRequest) => {
+            if(!env.IS_TESTING)
+                return;
+            const entity = 
+                request.url
+                    .replace(/^(.*\/api\/)/, '')
+                    .match(/^\w+/);
+            return () => mockServices[entity]?.getAll();
+        }
+    ],
+    endpoints : {
+        'get-all-users' : {
+            target : '/users'
+        },
+        'get-all-posts' : {
+            target : '/posts'
+        }
+    }
+}
+
+```
+
+
 ## Testing
 The test suite is written in Vitest and requires [Deno](https://deno.land)
 

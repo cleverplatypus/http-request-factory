@@ -95,6 +95,7 @@ export type APIConfig = {
      * the API's responses.
      */
     responseBodyTransformer?: ResponseBodyTransformer;
+    requestInterceptors?: Array<RequestInterceptor>;
     queryParams?: Record<string, QueryParameterValue>;
     /**
      * A map of {@link Endpoint} for the API

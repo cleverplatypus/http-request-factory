@@ -77,6 +77,17 @@ export declare class HTTPRequestFactory {
      * @returns {HTTPRequestFactory} the factory instance
      */
     withLogLevel(level: LogLevel): this;
+    /**
+     * Adds a request interceptor to the request configuration.
+     * Interceptors are executed in the order they are added.
+     * - If a request interceptor returns a rejected promise, the request will fail.
+     * - If a request interceptor returns a resolved promise, the promise's result will be used as the response.
+     * - If the interceptor returns `undefined`, the request will continue to the next interceptor, if present or to the regular request handling
+     * - the interceptor's second parameter is contains commands {@link InterceptorCommands} to replace the requests URL or to completely remove the interceptor from configuration
+     *
+     * @param {RequestInterceptor} interceptor - The interceptor to add.
+     * @return {HTTPRequest} - The updated request instance.
+     */
     withRequestInterceptor(interceptor: RequestInterceptor): this;
     /**
      * Adds a response body transformer to the factory defaults.

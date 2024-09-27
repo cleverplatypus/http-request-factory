@@ -15,6 +15,7 @@ export type InterceptorCommands = {
 }
 
 export type RequestInterceptor = (request:HTTPRequest, commands:InterceptorCommands) => Promise<any | undefined>;
+
 export type RequestDefaults = (request : HTTPRequest) => void;
 /**
  * @internal
@@ -122,6 +123,8 @@ export type APIConfig = {
      * the API's responses.
      */
     responseBodyTransformer? : ResponseBodyTransformer,
+
+    requestInterceptors? : Array<RequestInterceptor>,
 
     queryParams? : Record<string, QueryParameterValue>
 

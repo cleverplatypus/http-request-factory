@@ -25,6 +25,12 @@ export declare class HTTPRequest {
      */
     private readResponse;
     constructor({ url, method, defaultConfigBuilders, factory }: RequestConstructorArgs);
+    /**
+     * Gets the URL of the request.
+     *
+     * @returns {string} the URL of the request
+     */
+    get url(): string;
     private getLogger;
     private setupHeaders;
     private setupTimeout;
