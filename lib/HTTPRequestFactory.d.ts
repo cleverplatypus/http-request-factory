@@ -127,6 +127,6 @@ export declare class HTTPRequestFactory {
      *    .withHeader('X-PoweredBy', 'Me')
      *    .execute();
      */
-    createAPIRequest(apiName: string, endpointName: string): HTTPRequest;
+    createAPIRequest(...args: [string, string] | [string]): HTTPRequest;
 }
 //# sourceMappingURL=HTTPRequestFactory.d.ts.map

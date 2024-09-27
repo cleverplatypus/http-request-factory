@@ -261,7 +261,8 @@ export class HTTPRequestFactory {
  *    .withHeader('X-PoweredBy', 'Me')
  *    .execute();
  */
-  createAPIRequest(apiName: string, endpointName: string): HTTPRequest {
+  createAPIRequest(...args: [string, string] | [string]): HTTPRequest {
+    const [apiName, endpointName] = args.length === 1 ? ['default', args[0]] : args;
     this.logger
       .withLevel(this.logLevel)
       .trace('Creating API request', apiName, endpointName);

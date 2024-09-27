@@ -324,8 +324,9 @@ export class HTTPRequest {
   withFormEncodedBody(data:string) {
     this.withHeader('content-type', 'application/x-www-form-urlencoded');
     this.config.body = () => {
-      return encodeURIComponent(data);
+      return data;
     }
+    return this;
   }
 
   /**

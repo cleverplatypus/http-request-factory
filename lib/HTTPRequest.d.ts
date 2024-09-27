@@ -94,6 +94,7 @@ export declare class HTTPRequest {
      * @return {HTTPRequest} - The updated request instance.
      */
     withURLParams(params: Record<string, QueryParameterValue>): this;
+    withFormEncodedBody(data: string): this;
     /**
      * Set the request body as a JSON object or string.
      *

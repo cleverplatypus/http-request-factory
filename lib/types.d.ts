@@ -67,8 +67,10 @@ export type APIConfig = {
     baseURL?: string | ((endpoint: Endpoint) => string);
     /**
      * The name of the API to be referenced in {@link HTTPRequestFactory.createAPIRequest}
+     * If the name is 'default' it will be used as the default API when calling {@link HTTPRequestFactory.createAPIRequest}
+     * with one argument (the name of the endpoint).
      */
-    name: string;
+    name: string | 'default';
     /**
      * Any metadata that should be attached to the API for later reference
      */

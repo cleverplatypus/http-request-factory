@@ -3,8 +3,10 @@
     "files": ["src/index.ts"],
     "compilerOptions": {
         "allowImportingTsExtensions": true,
-        "declaration": true,
-        "outDir": "./dist",
+        "emitDeclarationOnly": true,
+        "declaration": true,    
+        "declarationMap": true,
+        "outDir": "./lib",
         "rootDir": "./src",
         "target": "ES6",
         "module": "CommonJS",
@@ -15,6 +17,7 @@
         "forceConsistentCasingInFileNames": true,
         "experimentalDecorators": true
     },
+    "include": ["src/**/*"],
     "exclude": ["node_modules"],
 }
 
