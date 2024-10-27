@@ -1,8 +1,8 @@
-import deepFreeze from 'deep-freeze-strict';
-import ConsoleLogger from './ConsoleLogger.ts';
-import { TEXT_TYPES } from './constants.ts';
-import HTTPError from './HTTPError.ts';
-import ILogger from './ILogger.ts';
+import deepFreeze from "deep-freeze-strict";
+import ConsoleLogger from "./ConsoleLogger.ts";
+import { TEXT_TYPES } from "./constants.ts";
+import HTTPError from "./HTTPError.ts";
+import ILogger from "./ILogger.ts";
 import {
   ErrorInterceptor,
   HeaderValue,
@@ -10,10 +10,18 @@ import {
   LogLevel,
   QueryParameterValue,
   RequestConfig,
+  RequestInterceptor,
   ResponseBodyTransformer,
   ResponseInterceptor,
-} from './types.ts';
+} from "./types.ts";
+import { HTTPRequestFactory } from "./HTTPRequestFactory.ts";
 
+type RequestConstructorArgs = {
+  url: string;
+  method: HTTPMethod;
+  defaultConfigBuilders: Function[];
+  factory: HTTPRequestFactory;
+};
 /**
  * HTTP Request. This class shouldn't be instanciated directly.
  * Use {@link HTTPRequestFactory} createXXXRequest() instead
@@ -25,12 +33,13 @@ export class HTTPRequest {
   private config: RequestConfig;
   private timeoutID?: any;
   private fetchBody: RequestInit | null = null;
+  private factory: HTTPRequestFactory;
   /**
    * Returns the fetch response content in its appropriate format
    * @param {Response} response
    */
   private readResponse = async (response: Response): Promise<any> => {
-    const contentType = response.headers.get('content-type')?.split(/;\s?/)[0];
+    const contentType = response.headers.get("content-type")?.split(/;\s?/)[0];
     if (!contentType) {
       this.getLogger().info(`No content-type header found for response`);
       return null;
@@ -46,13 +55,15 @@ export class HTTPRequest {
     return await response.blob();
   };
 
-  constructor(
-    url: string,
-    method: HTTPMethod,
-    defaultConfigBuilders: Function[]
-  ) {
+  constructor({
+    url,
+    method,
+    defaultConfigBuilders,
+    factory,
+  }: RequestConstructorArgs) {
     this.configBuilders = defaultConfigBuilders;
     this.wasUsed = false;
+    this.factory = factory;
     this.config = {
       url,
       headers: {},
@@ -61,16 +72,28 @@ export class HTTPRequest {
       ignoreResponseBody: false,
       uriEncodedBody: false,
       method,
-      credentials: 'same-origin',
-      logLevel: 'error',
-      corsMode: 'cors',
+      credentials: "same-origin",
+      logLevel: "error",
+      corsMode: "cors",
       meta: {},
       queryParams: {},
-      expectedResponseFormat: 'auto',
-      acceptedMIMETypes: ['*/*'],
+      expectedResponseFormat: "auto",
+      acceptedMIMETypes: ["*/*"],
       urlParams: {},
       errorInterceptors: [],
+      responseInterceptors: [],
+      requestInterceptors: [],
+      responseBodyTransformers : []
     };
+  }
+
+  /**
+   * Gets the URL of the request.
+   *
+   * @returns {string} the URL of the request
+   */
+  get url() {
+    return this.config.url;
   }
 
   private getLogger() {
@@ -80,7 +103,7 @@ export class HTTPRequest {
   private setupHeaders() {
     const headers = this.config.headers;
     for (let n in headers) {
-      if (typeof headers[n] === 'function') {
+      if (typeof headers[n] === "function") {
         headers[n] = (headers[n] as Function)(this);
       }
       headers[n] ?? delete headers[n];
@@ -93,7 +116,7 @@ export class HTTPRequest {
       const controller = new AbortController();
       this.timeoutID = setTimeout(() => {
         this.getLogger().debug(
-          'HttpRequestFactory : Fetch timeout',
+          "HttpRequestFactory : Fetch timeout",
           `Request timeout after ${this.config.timeout / 1000} seconds`
         );
         controller.abort();
@@ -101,7 +124,7 @@ export class HTTPRequest {
       this.fetchBody!.signal = controller.signal;
     }
     this.getLogger().debug(
-      'HttpRequestFactory : Fetch invoked',
+      "HttpRequestFactory : Fetch invoked",
       this.fetchBody
     );
   }
@@ -126,7 +149,7 @@ export class HTTPRequest {
       const value = this.config.urlParams[key];
       this.config.url = this.config.url.replace(
         `{{${key}}}`,
-        typeof value === 'function' ? (value as Function)(this) : value
+        typeof value === "function" ? (value as Function)(this) : value
       );
     }
   }
@@ -139,7 +162,7 @@ export class HTTPRequest {
   async execute(): Promise<any> {
     if (this.wasUsed) {
       throw new Error(
-        'HttpRequests cannot be reused. Please call a request factory method for every new call'
+        "HttpRequests cannot be reused. Please call a request factory method for every new call"
       );
     }
     const logger = this.getLogger();
@@ -167,32 +190,52 @@ export class HTTPRequest {
 
     this.wasUsed = true;
 
+    for (const interceptor of this.config.requestInterceptors || []) {
+      let interceptorResponse = await interceptor(this, {
+        replaceURL: (newURL: string) => {
+          this.config.url = newURL;
+          this.setupURL();
+        },
+        deleteInterceptor: () => {
+          this.factory.deleteRequestInterceptor(interceptor);
+        },
+      });
+      if (interceptorResponse === undefined) {
+        continue;
+      }
+      if (this.config.responseBodyTransformers) {
+        for (const transformer of this.config.responseBodyTransformers)
+          interceptorResponse = await transformer(interceptorResponse, this);
+      }
+      return interceptorResponse;
+    }
+
     let response;
     try {
       logger.debug(
-        'HttpRequestFactory : Fetch url to be called',
+        "HttpRequestFactory : Fetch url to be called",
         this.config.url
       );
       response = await fetch(this.config.url, this.fetchBody);
 
-      logger.trace('HttpRequestFactory : Fetch response', response);
+      logger.trace("HttpRequestFactory : Fetch response", response);
 
-      if (this.config.responseInterceptor) {
-        const interceptorResponse = await this.config.responseInterceptor(
-          response,
-          this
-        );
-        if (interceptorResponse !== undefined) {
-          return interceptorResponse;
+      if (this.config.responseInterceptors.length) {
+        for (const interceptor of this.config.responseInterceptors) {
+          const interceptorResponse = await interceptor(response, this);
+          if (interceptorResponse !== undefined) {
+            return interceptorResponse;
+          }
         }
       }
       if (response.ok) {
         if (this.config.ignoreResponseBody || response.status === 204) {
           return;
         }
-        const body = await this.readResponse(response);
-        if (this.config.responseBodyTransformer) {
-          return this.config.responseBodyTransformer(body, this);
+        let body = await this.readResponse(response);
+        if (this.config.responseBodyTransformers) {
+          for (const transformer of this.config.responseBodyTransformers)
+            body = transformer(body, this);
         }
         return body;
       } else {
@@ -201,19 +244,19 @@ export class HTTPRequest {
           response.statusText,
           await this.readResponse(response)
         );
-        for(const interceptor of this.config.errorInterceptors || []) {
-            if(await interceptor(error)) {
-              break;
-            }
+        for (const interceptor of this.config.errorInterceptors || []) {
+          if (await interceptor(error)) {
+            break;
           }
+        }
         return Promise.reject(error);
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        return Promise.reject(new HTTPError(-1, 'Request aborted'));
+      if (error.name === "AbortError") {
+        return Promise.reject(new HTTPError(-1, "Request aborted"));
       }
-      logger.error('HttpRequestFactory : Fetch error', {
-        type: 'fetch-error',
+      logger.error("HttpRequestFactory : Fetch error", {
+        type: "fetch-error",
         endpoint: this.config.url,
         details: error,
       });
@@ -240,9 +283,9 @@ export class HTTPRequest {
    * @return {this} - Returns the current object instance for method chaining.
    */
   withMeta(param1: string | Record<string, any>, param2?: any) {
-    if (typeof param1 === 'string') {
+    if (typeof param1 === "string") {
       this.config.meta[param1] = param2;
-    } else if (typeof param1 === 'object') {
+    } else if (typeof param1 === "object") {
       Object.assign(this.config.meta, param1);
     }
     return this;
@@ -328,14 +371,30 @@ export class HTTPRequest {
   }
 
   withFormEncodedBody(data: string) {
-    this.withHeader('content-type', 'application/x-www-form-urlencoded');
+    this.withHeader("content-type", "application/x-www-form-urlencoded");
     this.config.body = () => {
-      return encodeURIComponent(data);
+      return data;
     };
+    return this;
   }
 
-  withErrorInterceptors(...interceptors : ErrorInterceptor[]) {
+  withErrorInterceptors(...interceptors: ErrorInterceptor[]) {
     this.config.errorInterceptors.push(...interceptors);
+  }
+
+  /**
+   * Adds a request interceptor to the request configuration.
+   * Interceptors are executed in the order they are added.
+   * - If a request interceptor returns a rejected promise, the request will fail.
+   * - If a request interceptor returns a resolved promise, the promise's result will be used as the response.
+   * - If the interceptor returns `undefined`, the request will continue to the next interceptor, if present, or to the regular request handling
+   * - the interceptor's second parameter is is a function that can be used to remove the interceptor from further request handling
+   *
+   * @param {RequestInterceptor} interceptor - The interceptor to add.
+   * @return {HTTPRequest} - The updated request instance.
+   */
+  withRequestInterceptors(...interceptors: RequestInterceptor[]) {
+    this.config.requestInterceptors.push(...interceptors);
   }
 
   /**
@@ -345,10 +404,10 @@ export class HTTPRequest {
    * @return {HTTPRequest} - The updated request instance.
    */
   withJSONBody(json: any) {
-    this.withHeader('content-type', 'application/json');
+    this.withHeader("content-type", "application/json");
     this.config.body = () => {
       switch (typeof json) {
-        case 'string':
+        case "string":
           try {
             JSON.parse(json);
 
@@ -357,12 +416,12 @@ export class HTTPRequest {
             //do nothing. logging below
           }
           break;
-        case 'object':
+        case "object":
           return JSON.stringify(json);
       }
       this.getLogger().error(
-        'POSTHttpRequest.withJSONBody',
-        'Passed body is not a valid JSON string',
+        "POSTHttpRequest.withJSONBody",
+        "Passed body is not a valid JSON string",
         json
       );
     };
@@ -377,7 +436,7 @@ export class HTTPRequest {
    */
   withFormDataBody(
     composerCallBack: (formData: FormData) => void = () => {
-      throw new Error('No composer callback provided');
+      throw new Error("No composer callback provided");
     }
   ): HTTPRequest {
     this.config.body = () => {
@@ -394,7 +453,7 @@ export class HTTPRequest {
    * @return {Object} - The current object instance.
    */
   withAcceptAny() {
-    this.config.acceptedMIMETypes = ['*/*'];
+    this.config.acceptedMIMETypes = ["*/*"];
     return this;
   }
 
@@ -427,7 +486,7 @@ export class HTTPRequest {
    * @return {Object} - The current object.
    */
   withNoCors() {
-    this.config.corsMode = 'no-cors';
+    this.config.corsMode = "no-cors";
     return this;
   }
 
@@ -458,7 +517,7 @@ export class HTTPRequest {
    * Sets the request's Accept header to 'application/json'
    */
   acceptJSON() {
-    this.config.acceptedMIMETypes = ['application/json'];
+    this.config.acceptedMIMETypes = ["application/json"];
     return this;
   }
 
@@ -468,7 +527,7 @@ export class HTTPRequest {
    * @return {HTTPRequest} - The updated request instance.
    */
   withHeaders(headers: Record<string, HeaderValue>) {
-    if (typeof headers === 'object') {
+    if (typeof headers === "object") {
       Object.assign(this.config.headers, headers);
     }
     return this;
@@ -505,8 +564,8 @@ export class HTTPRequest {
    *    .execute();
    * console.log(response.details.some.deep.data);
    */
-  withResponseBodyTransformer(transformer: ResponseBodyTransformer) {
-    this.config.responseBodyTransformer = transformer;
+  withResponseBodyTransformers(...transformers: ResponseBodyTransformer[]) {
+    this.config.responseBodyTransformers.push(...transformers);
     return this;
   }
 
@@ -538,8 +597,8 @@ export class HTTPRequest {
    * The callback signature is `function(response:Object, requestObj:HttpRequest)`
    * @return {HTTPRequest} - The updated request instance.
    */
-  withResponseInterceptor(handler: ResponseInterceptor): HTTPRequest {
-    this.config.responseInterceptor = handler;
+  withResponseInterceptors(...interceptors: ResponseInterceptor[]): HTTPRequest {
+    this.config.responseInterceptors.push(...interceptors);
     return this;
   }
 

@@ -1,6 +1,6 @@
-import ConsoleLogger from './ConsoleLogger.ts';
-import { HTTPRequest } from './HTTPRequest.ts';
-import ILogger from './ILogger.ts';
+import ConsoleLogger from "./ConsoleLogger.ts";
+import { HTTPRequest } from "./HTTPRequest.ts";
+import ILogger from "./ILogger.ts";
 import {
   APIConfig,
   HeaderValue,
@@ -8,8 +8,11 @@ import {
   HTTPMethod,
   LogLevel,
   ResponseBodyTransformer,
+  RequestInterceptor,
+  InterceptorCommands,
+  RequestDefaults,
   ErrorInterceptor,
-} from './types.ts';
+} from "./types.ts";
 
 function getEndpointURL(endpoint: Endpoint, api: APIConfig) {
   if (/^(https?:)?\/\//.test(endpoint.target)) {
@@ -18,7 +21,7 @@ function getEndpointURL(endpoint: Endpoint, api: APIConfig) {
   let base: string | null = null;
   if (api.baseURL) {
     base =
-      typeof api.baseURL === 'function' ? api.baseURL(endpoint) : api.baseURL;
+      typeof api.baseURL === "function" ? api.baseURL(endpoint) : api.baseURL;
   }
 
   return base ? `${base}${endpoint.target}` : endpoint.target;
@@ -30,11 +33,14 @@ function getEndpointURL(endpoint: Endpoint, api: APIConfig) {
  * conditional settings using {@link when} in a method-chain fashion.
  */
 export class HTTPRequestFactory {
-  private requestDefaults: Function[] = [];
+  private requestDefaults: RequestDefaults[] = [];
   private apiConfigs: { [key: string]: APIConfig } = {};
   private logger: ILogger = new ConsoleLogger();
-  private logLevel: LogLevel = 'error';
-
+  private logLevel: LogLevel = "error";
+  private interceptorsToRequestDefaults: Map<
+    RequestInterceptor,
+    RequestDefaults
+  > = new Map();
   /**
    * Resets any conditions in the method chain set by {@link when}
    * @returns {HTTPRequestFactory} the factory instance
@@ -60,16 +66,16 @@ export class HTTPRequestFactory {
   when(condition: (request: HTTPRequest) => boolean) {
     const proxy = new Proxy(this, {
       get: (target, prop) => {
-        if (prop === 'always') {
+        if (prop === "always") {
           return () => target;
         }
 
-        if (prop === 'when') {
+        if (prop === "when") {
           return (condition: (request: HTTPRequest) => boolean) =>
             target.when(condition);
         }
 
-        if (typeof target[prop] !== 'function') {
+        if (typeof target[prop] !== "function") {
           return target[prop];
         }
 
@@ -86,6 +92,13 @@ export class HTTPRequestFactory {
     });
 
     return proxy;
+  }
+  deleteRequestInterceptor(interceptor: RequestInterceptor) {
+    const requestDefaults = this.interceptorsToRequestDefaults.get(interceptor);
+    this.requestDefaults.splice(
+      this.requestDefaults.indexOf(requestDefaults),
+      1
+    );
   }
 
   /**
@@ -168,6 +181,27 @@ export class HTTPRequestFactory {
     );
     return this;
   }
+  /**
+   * Adds a request interceptor to the request configuration.
+   * Interceptors are executed in the order they are added.
+   * - If a request interceptor returns a rejected promise, the request will fail.
+   * - If a request interceptor returns a resolved promise, the promise's result will be used as the response.
+   * - If the interceptor returns `undefined`, the request will continue to the next interceptor, if present or to the regular request handling
+   * - the interceptor's second parameter is contains commands {@link InterceptorCommands} to replace the requests URL or to completely remove the interceptor from configuration
+   *
+   * @param {RequestInterceptor} interceptor - The interceptor to add.
+   * @return {HTTPRequest} - The updated request instance.
+   */
+  withRequestInterceptors(...interceptors: RequestInterceptor[]) {
+    for(const interceptor of interceptors) {
+      const defaultFn = function(request: HTTPRequest) {
+        request.withRequestInterceptors(interceptor);
+      }
+      this.requestDefaults.push(defaultFn);
+      this.interceptorsToRequestDefaults.set(interceptor, defaultFn);
+    }
+    return this;
+  }
 
   /**
    * Adds a response body transformer to the factory defaults.
@@ -175,12 +209,12 @@ export class HTTPRequestFactory {
    * @param {ResponseBodyTransformer} transformer - The function that will be used to transform the response body.
    * @returns {HTTPRequestFactory} the factory instance
    */
-  withResponseBodyTransformer(
-    transformer: (body: any, request: HTTPRequest) => any
+  withResponseBodyTransformers(
+    ...transformers: ResponseBodyTransformer[]
   ) {
-    this.requestDefaults.push((request: HTTPRequest) =>
-      request.withResponseBodyTransformer(transformer)
-    );
+    this.requestDefaults.push(... transformers.map(transformer => (request: HTTPRequest) =>
+      request.withResponseBodyTransformers(transformer)
+    ));
     return this;
   }
 
@@ -191,7 +225,7 @@ export class HTTPRequestFactory {
    * @returns {HTTPRequestFactory} the factory instance
    */
   withHeaders(headers: Record<string, HeaderValue>) {
-    if (typeof headers === 'object') {
+    if (typeof headers === "object") {
       for (const name of Object.keys(headers)) {
         this.requestDefaults.push((request: HTTPRequest) =>
           request.withHeader(name, headers[name])
@@ -213,14 +247,14 @@ export class HTTPRequestFactory {
    * @param {String} url
    */
   createPOSTRequest(url: string) {
-    return this.createRequest(url, 'POST');
+    return this.createRequest(url, "POST");
   }
   /**
    * Factory method for creating GET requests
    * @param {String} url
    */
   createGETRequest(url: string) {
-    return this.createRequest(url, 'GET');
+    return this.createRequest(url, "GET");
   }
 
   /**
@@ -228,30 +262,35 @@ export class HTTPRequestFactory {
    * @param {String} url
    */
   createPUTRequest(url: string) {
-    return this.createRequest(url, 'PUT');
+    return this.createRequest(url, "PUT");
   }
   /**
    * Factory method for creating DELETE requests
    * @param {String} url
    */
   createDELETERequest(url: string) {
-    return this.createRequest(url, 'DELETE');
+    return this.createRequest(url, "DELETE");
   }
 
   createPATCHRequest(url: string) {
-    return this.createRequest(url, 'PATCH');
+    return this.createRequest(url, "PATCH");
   }
 
   createHEADRequest(url: string) {
-    return this.createRequest(url, 'HEAD');
+    return this.createRequest(url, "HEAD");
   }
 
   createTRACERequest(url: string) {
-    return this.createRequest(url, 'TRACE');
+    return this.createRequest(url, "TRACE");
   }
 
-  createRequest(url: string, method: HTTPMethod = 'GET') {
-    return new HTTPRequest(url, method, this.requestDefaults);
+  createRequest(url: string, method: HTTPMethod = "GET") {
+    return new HTTPRequest({
+      url,
+      method,
+      defaultConfigBuilders: this.requestDefaults,
+      factory: this,
+    });
   }
 
   /**
@@ -268,10 +307,12 @@ export class HTTPRequestFactory {
    *    .withHeader('X-PoweredBy', 'Me')
    *    .execute();
    */
-  createAPIRequest(apiName: string, endpointName: string): HTTPRequest {
+  createAPIRequest(...args: [string, string] | [string]): HTTPRequest {
+    const [apiName, endpointName] =
+      args.length === 1 ? ["default", args[0]] : args;
     this.logger
       .withLevel(this.logLevel)
-      .trace('Creating API request', apiName, endpointName);
+      .trace("Creating API request", apiName, endpointName);
     const api = this.apiConfigs[apiName];
     const endpoint: Endpoint = api?.endpoints[endpointName];
     if (!endpoint) {
@@ -279,22 +320,42 @@ export class HTTPRequestFactory {
     }
 
     const url = getEndpointURL(endpoint, api);
-    const meta = Object.assign(
-      {
-        api: {
-          name: api.name,
-          baseURL: api.baseURL,
-        },
+    const meta = {
+      api: {
+        name: api.name,
+        baseURL: api.baseURL,
+        endpoint,
+        endpointName,
       },
-      api.meta || {},
-      endpoint.meta || {}
-    );
+    };
+    Object.defineProperty(meta, "api", {
+      writable: false,
+      configurable: false,
+      enumerable: true,
+    });
+
+    
+    try {
+       Object.assign(meta, api.meta || {}, endpoint.meta || {});
+    } catch (e) {
+      this.logger.error(
+        "Unable to merge meta. You're probably trying to assign the reserved `api` property name to meta",
+        e
+      );
+    }
     const request = this.createRequest(url, endpoint.method)
       .withMeta(meta)
       .withHeaders(api.headers || {})
       .withQueryParams(api.queryParams || {});
-    if (api.responseBodyTransformer) {
-      request.withResponseBodyTransformer(api.responseBodyTransformer);
+    if (api.responseBodyTransformers) {
+      const transformers = Array.isArray(api.responseBodyTransformers) ? 
+        api.responseBodyTransformers : [api.responseBodyTransformers];
+      request.withResponseBodyTransformers(...transformers);
+    }
+    if (api.requestInterceptors) {
+      const interceptors = Array.isArray(api.requestInterceptors) ? 
+        api.requestInterceptors : [api.requestInterceptors];
+      request.withRequestInterceptors(...interceptors);
     }
     if (api.errorInterceptors) {
       const errorInterceptors = Array.isArray(api.errorInterceptors)
