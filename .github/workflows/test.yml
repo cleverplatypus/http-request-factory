@@ -19,13 +19,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
-
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: denoland/setup-deno@v1
-        with:
-          deno-version: vx.x.x
       - run: yarn
-      - run: deno --version
       - run: yarn test
-      - run: yarn shut-down-test-server

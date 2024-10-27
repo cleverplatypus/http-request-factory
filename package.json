@@ -10,8 +10,7 @@
     "type": "git"
   },
   "scripts": {
-    "test": "deno run --allow-all __TESTS__/server.ts & sleep 1 && vitest",
-    "shut-down-test-server" : "curl http://localhost:8080/shutdown"
+    "test": "vitest"
   },
   "devDependencies": {
     "@types/node": "^20.4.2",
