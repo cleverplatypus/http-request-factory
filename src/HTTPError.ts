@@ -1,4 +1,4 @@
-export default class HTTPError {
+export default class HTTPError extends Error{
     
     readonly code: number;
     readonly message: string;
@@ -8,6 +8,7 @@ export default class HTTPError {
         message : string,
         body?: any
     ) {
+        super(message)
         this.code = code;
         this.message = message;
         this.body = body;

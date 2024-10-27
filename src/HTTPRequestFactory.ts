@@ -8,6 +8,7 @@ import {
   HTTPMethod,
   LogLevel,
   ResponseBodyTransformer,
+  ErrorInterceptor,
 } from './types.ts';
 
 function getEndpointURL(endpoint: Endpoint, api: APIConfig) {
@@ -34,7 +35,6 @@ export class HTTPRequestFactory {
   private logger: ILogger = new ConsoleLogger();
   private logLevel: LogLevel = 'error';
 
-  
   /**
    * Resets any conditions in the method chain set by {@link when}
    * @returns {HTTPRequestFactory} the factory instance
@@ -49,13 +49,13 @@ export class HTTPRequestFactory {
    *
    * @param {function} condition - A function that takes a HTTPRequest object and returns whether or not to apply the condition.
    * @return {HTTPRequestFactory} - A proxy to the factory instance that allows the conditional configuration
-   * 
+   *
    * @example
    * factory
    *  .when((request) => request.meta.requiresAuth)
    *  .withHeader('Authorization', 'some-token')
    *  .always()
-   *  .withHeader('X-PoweredBy', 'Me') 
+   *  .withHeader('X-PoweredBy', 'Me')
    */
   when(condition: (request: HTTPRequest) => boolean) {
     const proxy = new Proxy(this, {
@@ -87,7 +87,6 @@ export class HTTPRequestFactory {
 
     return proxy;
   }
-
 
   /**
    * Sets the logger adapter for the instance for every request created.
@@ -176,14 +175,15 @@ export class HTTPRequestFactory {
    * @param {ResponseBodyTransformer} transformer - The function that will be used to transform the response body.
    * @returns {HTTPRequestFactory} the factory instance
    */
-  withResponseBodyTransformer(transformer: (body: any, request:HTTPRequest) => any) {
+  withResponseBodyTransformer(
+    transformer: (body: any, request: HTTPRequest) => any
+  ) {
     this.requestDefaults.push((request: HTTPRequest) =>
       request.withResponseBodyTransformer(transformer)
     );
     return this;
   }
 
-  
   /**
    * Adds the provided headers to the factory defaults.
    *
@@ -198,6 +198,13 @@ export class HTTPRequestFactory {
         );
       }
     }
+    return this;
+  }
+
+  withErrorInterceptors(...interceptors: ErrorInterceptor[]) {
+    this.requestDefaults.push((request) => {
+      request.withErrorInterceptors(...interceptors);
+    });
     return this;
   }
 
@@ -247,20 +254,20 @@ export class HTTPRequestFactory {
     return new HTTPRequest(url, method, this.requestDefaults);
   }
 
-/**
- * Creates a {@link HTTPRequest} with configuration based on the given {@link APIConfig}'s name and endpoint name.
- * It also populates the request's meta with info about the API and endpoint inside `request.meta.api` 
- * merging in any meta defined in the api config's `api.meta` and `endpoint.meta`.
- * @param {string} apiName - The name of the API.
- * @param {string} endpointName - The name of the endpoint.
- * @return {HTTPRequest} The created request.
- * 
- * @example
- * factory.createAPIRequest('my-api', 'my-endpoint')
- *    .withQueryParam('key', 'value')
- *    .withHeader('X-PoweredBy', 'Me')
- *    .execute();
- */
+  /**
+   * Creates a {@link HTTPRequest} with configuration based on the given {@link APIConfig}'s name and endpoint name.
+   * It also populates the request's meta with info about the API and endpoint inside `request.meta.api`
+   * merging in any meta defined in the api config's `api.meta` and `endpoint.meta`.
+   * @param {string} apiName - The name of the API.
+   * @param {string} endpointName - The name of the endpoint.
+   * @return {HTTPRequest} The created request.
+   *
+   * @example
+   * factory.createAPIRequest('my-api', 'my-endpoint')
+   *    .withQueryParam('key', 'value')
+   *    .withHeader('X-PoweredBy', 'Me')
+   *    .execute();
+   */
   createAPIRequest(apiName: string, endpointName: string): HTTPRequest {
     this.logger
       .withLevel(this.logLevel)
@@ -288,6 +295,12 @@ export class HTTPRequestFactory {
       .withQueryParams(api.queryParams || {});
     if (api.responseBodyTransformer) {
       request.withResponseBodyTransformer(api.responseBodyTransformer);
+    }
+    if (api.errorInterceptors) {
+      const errorInterceptors = Array.isArray(api.errorInterceptors)
+        ? api.errorInterceptors
+        : [api.errorInterceptors];
+      request.withErrorInterceptors(...errorInterceptors);
     }
     return request;
   }

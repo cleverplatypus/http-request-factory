@@ -4,6 +4,7 @@ import { TEXT_TYPES } from './constants.ts';
 import HTTPError from './HTTPError.ts';
 import ILogger from './ILogger.ts';
 import {
+  ErrorInterceptor,
   HeaderValue,
   HTTPMethod,
   LogLevel,
@@ -68,6 +69,7 @@ export class HTTPRequest {
       expectedResponseFormat: 'auto',
       acceptedMIMETypes: ['*/*'],
       urlParams: {},
+      errorInterceptors: [],
     };
   }
 
@@ -194,13 +196,17 @@ export class HTTPRequest {
         }
         return body;
       } else {
-        return Promise.reject(
-          new HTTPError(
-            response.status,
-            response.statusText,
-            await this.readResponse(response)
-          )
+        const error = new HTTPError(
+          response.status,
+          response.statusText,
+          await this.readResponse(response)
         );
+        for(const interceptor of this.config.errorInterceptors || []) {
+            if(await interceptor(error)) {
+              break;
+            }
+          }
+        return Promise.reject(error);
       }
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -321,11 +327,15 @@ export class HTTPRequest {
     return this;
   }
 
-  withFormEncodedBody(data:string) {
+  withFormEncodedBody(data: string) {
     this.withHeader('content-type', 'application/x-www-form-urlencoded');
     this.config.body = () => {
       return encodeURIComponent(data);
-    }
+    };
+  }
+
+  withErrorInterceptors(...interceptors : ErrorInterceptor[]) {
+    this.config.errorInterceptors.push(...interceptors);
   }
 
   /**
@@ -363,7 +373,7 @@ export class HTTPRequest {
    * Set the request body to a FormData object and allows customizing the form data before sending the request.
    *
    * @param {Function} composerCallBack - the callback function that customizes the FormData object
-   * @return {HTTPRequest} 
+   * @return {HTTPRequest}
    */
   withFormDataBody(
     composerCallBack: (formData: FormData) => void = () => {

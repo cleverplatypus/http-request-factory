@@ -1,12 +1,13 @@
 import HTTPError from '../src/HTTPError.ts';
 import { HTTPRequestFactory } from '../src/index.ts';
-import {describe, expect, it} from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 const sessionModel = {
   accessToken: 'the-access-token',
 };
 
 const factory = new HTTPRequestFactory().withLogLevel('debug');
+
 
 factory
   .withAPIConfig(
@@ -77,7 +78,7 @@ describe('HTTP Tests', () => {
       expect(response.data).toHaveLength(2);
       expect(response.data[0].id).toBe('123');
       expect(response.data[1].id).toBe('456');
-    })
+    });
 
     it('test_put_request', async () => {
       const array = ['words', 'to', 'concatenate'];
@@ -186,10 +187,62 @@ describe('HTTP Tests', () => {
           .withTimeout(1000)
           .execute();
       } catch (e) {
-        console.warn(e);
         expect(e).toBeInstanceOf(HTTPError);
         expect(e.isAborted()).toBeTruthy();
       }
+    });
+
+    it('test_factory_error_interceptors', async () => {
+      const factory = new HTTPRequestFactory();
+      let handled: boolean[] = [];
+      factory.withErrorInterceptors(async (error: HTTPError) => {
+        return new Promise((resolve) => {
+          const result = error.code === 401;
+          handled.push(result);
+          resolve(result);
+        });
+      });
+      await expect(
+        factory.createGETRequest('https://httpstat.us/401').execute()
+      ).rejects.toThrowError(HTTPError);
+      expect(handled).toEqual([true]);
+    });
+
+    it('test_api_error_interceptors', async () => {
+      const responses: boolean[] = [];
+
+      const factory = new HTTPRequestFactory().withAPIConfig({
+        name: 'error-interceptors',
+        errorInterceptors: (error: HTTPError) => {
+          const result = error.code >= 500;
+          responses.push(result);
+          return result;
+        },
+        endpoints: {
+          error: {
+            target: 'https://httpstat.us/{{code}}',
+          },
+        },
+      });
+      await expect(
+        factory
+          .createAPIRequest('error-interceptors', 'error')
+          .withURLParam('code', '500')
+          .execute()
+      ).rejects.toThrowError(HTTPError);
+      await expect(
+        factory
+          .createAPIRequest('error-interceptors', 'error')
+          .withURLParam('code', '501')
+          .execute()
+      ).rejects.toThrowError(HTTPError);
+      await expect(
+        factory
+          .createAPIRequest('error-interceptors', 'error')
+          .withURLParam('code', '400')
+          .execute()
+      ).rejects.toThrowError(HTTPError);
+      expect(responses).toEqual([true, true, false]);
     });
   } catch (e) {
     console.log(e);

@@ -1,5 +1,6 @@
 import { type } from 'os';
 import { HTTPRequest } from './HTTPRequest.ts';
+import HTTPError from './HTTPError.ts';
 
 export type LogLevel = 'none' | 'trace' | 'debug' | 'info' | 'warn' | 'error';
 
@@ -33,6 +34,9 @@ export type ResponseHandler =
 export type ResponseInterceptor = 
     (response:Response, requestObj:HTTPRequest) => Promise<any>
 
+export type ErrorInterceptor =
+    (HTTPError) => boolean | Promise<boolean>
+
 /**
  * Internal representation of a {@link HTTPRequest}'s configuration
  */
@@ -54,7 +58,7 @@ export type RequestConfig = {
     corsMode: RequestMode
     urlParams : Record<string, ScalarType | ((HTTPRequest) => ScalarType)>
     responseInterceptor?: ResponseInterceptor
-    
+    errorInterceptors?: ErrorInterceptor[]
 }
 
 /**
@@ -112,6 +116,8 @@ export type APIConfig = {
      */
     responseBodyTransformer? : ResponseBodyTransformer,
 
+    errorInterceptors? : ErrorInterceptor | Array<ErrorInterceptor>
+    
     queryParams? : Record<string, QueryParameterValue>
 
     /**
