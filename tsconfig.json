@@ -3,6 +3,7 @@
     "files": ["src/index.ts"],
     "compilerOptions": {
         "allowImportingTsExtensions": true,
+        "emitDeclarationOnly": true,
         "declaration": true,
         "outDir": "./dist",
         "rootDir": "./src",

@@ -10,6 +10,7 @@
     "type": "git"
   },
   "scripts": {
+    "generate-docs" : "npx typedoc --entryPoints src/index.ts src/HTTPRequest.ts ",
     "test": "vitest"
   },
   "devDependencies": {
