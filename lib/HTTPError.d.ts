@@ -1,4 +1,4 @@
-export default class HTTPError {
+export default class HTTPError extends Error {
     readonly code: number;
     readonly message: string;
     readonly body?: any;
@@ -14,4 +14,3 @@ export default class HTTPError {
     isTimedOut(): boolean;
     isAborted(): boolean;
 }
-//# sourceMappingURL=HTTPError.d.ts.map

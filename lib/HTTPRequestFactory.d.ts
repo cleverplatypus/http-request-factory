@@ -1,6 +1,6 @@
-import { HTTPRequest } from './HTTPRequest.ts';
-import ILogger from './ILogger.ts';
-import { APIConfig, HeaderValue, HTTPMethod, LogLevel } from './types.ts';
+import { HTTPRequest } from "./HTTPRequest.ts";
+import ILogger from "./ILogger.ts";
+import { APIConfig, HeaderValue, HTTPMethod, LogLevel, ResponseBodyTransformer, RequestInterceptor, ErrorInterceptor } from "./types.ts";
 /**
  * A factory for creating {@link HTTPRequest} instances.
  * It can be configured with defaults, logging options as well as
@@ -11,6 +11,7 @@ export declare class HTTPRequestFactory {
     private apiConfigs;
     private logger;
     private logLevel;
+    private interceptorsToRequestDefaults;
     /**
      * Resets any conditions in the method chain set by {@link when}
      * @returns {HTTPRequestFactory} the factory instance
@@ -31,6 +32,7 @@ export declare class HTTPRequestFactory {
      *  .withHeader('X-PoweredBy', 'Me')
      */
     when(condition: (request: HTTPRequest) => boolean): this;
+    deleteRequestInterceptor(interceptor: RequestInterceptor): void;
     /**
      * Sets the logger adapter for the instance for every request created.
      * By default the logger will be set by the factory to the internal `ConsoleLogger` adapter.
@@ -76,12 +78,24 @@ export declare class HTTPRequestFactory {
      */
     withLogLevel(level: LogLevel): this;
     /**
+     * Adds a request interceptor to the request configuration.
+     * Interceptors are executed in the order they are added.
+     * - If a request interceptor returns a rejected promise, the request will fail.
+     * - If a request interceptor returns a resolved promise, the promise's result will be used as the response.
+     * - If the interceptor returns `undefined`, the request will continue to the next interceptor, if present or to the regular request handling
+     * - the interceptor's second parameter is contains commands {@link InterceptorCommands} to replace the requests URL or to completely remove the interceptor from configuration
+     *
+     * @param {RequestInterceptor} interceptor - The interceptor to add.
+     * @return {HTTPRequest} - The updated request instance.
+     */
+    withRequestInterceptors(...interceptors: RequestInterceptor[]): this;
+    /**
      * Adds a response body transformer to the factory defaults.
      *
      * @param {ResponseBodyTransformer} transformer - The function that will be used to transform the response body.
      * @returns {HTTPRequestFactory} the factory instance
      */
-    withResponseBodyTransformer(transformer: (body: any, request: HTTPRequest) => any): this;
+    withResponseBodyTransformers(...transformers: ResponseBodyTransformer[]): this;
     /**
      * Adds the provided headers to the factory defaults.
      *
@@ -89,6 +103,7 @@ export declare class HTTPRequestFactory {
      * @returns {HTTPRequestFactory} the factory instance
      */
     withHeaders(headers: Record<string, HeaderValue>): this;
+    withErrorInterceptors(...interceptors: ErrorInterceptor[]): this;
     /**
      * Factory method for creating POST requests
      * @param {String} url
@@ -127,6 +142,5 @@ export declare class HTTPRequestFactory {
      *    .withHeader('X-PoweredBy', 'Me')
      *    .execute();
      */
-    createAPIRequest(apiName: string, endpointName: string): HTTPRequest;
+    createAPIRequest(...args: [string, string] | [string]): HTTPRequest;
 }
-//# sourceMappingURL=HTTPRequestFactory.d.ts.map

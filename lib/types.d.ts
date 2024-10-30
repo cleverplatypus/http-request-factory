@@ -1,7 +1,14 @@
 import { HTTPRequest } from './HTTPRequest.ts';
+import HTTPError from './HTTPError.ts';
 export type LogLevel = 'none' | 'trace' | 'debug' | 'info' | 'warn' | 'error';
 export type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'TRACE';
 export type ScalarType = string | number | boolean;
+export type InterceptorCommands = {
+    deleteInterceptor: () => void;
+    replaceURL: (url: string) => void;
+};
+export type RequestInterceptor = (request: HTTPRequest, commands: InterceptorCommands) => Promise<any | undefined>;
+export type RequestDefaults = (request: HTTPRequest) => void;
 /**
  * @internal
  */
@@ -12,6 +19,7 @@ export type ResponseBodyTransformer = (body: any, request: HTTPRequest) => any;
 export type HeaderValue = string | DynamicHeaderValue;
 export type ResponseHandler = (response: Response, requestObj: HTTPRequest) => Promise<any>;
 export type ResponseInterceptor = (response: Response, requestObj: HTTPRequest) => Promise<any>;
+export type ErrorInterceptor = (error: HTTPError) => boolean | Promise<boolean>;
 /**
  * Internal representation of a {@link HTTPRequest}'s configuration
  */
@@ -24,7 +32,7 @@ export type RequestConfig = {
     logLevel: LogLevel;
     meta: Record<string, any>;
     queryParams: Object;
-    responseBodyTransformer?: ResponseBodyTransformer;
+    responseBodyTransformers: ResponseBodyTransformer[];
     ignoreResponseBody: boolean;
     credentials: RequestCredentials;
     uriEncodedBody: boolean;
@@ -32,7 +40,9 @@ export type RequestConfig = {
     acceptedMIMETypes: string[];
     corsMode: RequestMode;
     urlParams: Record<string, ScalarType | ((HTTPRequest: any) => ScalarType)>;
-    responseInterceptor?: ResponseInterceptor;
+    requestInterceptors: RequestInterceptor[];
+    responseInterceptors: ResponseInterceptor[];
+    errorInterceptors: ErrorInterceptor[];
 };
 /**
  * The definition of an API endpoint to be listed in the {@link APIConfig.endpoints} map
@@ -67,8 +77,10 @@ export type APIConfig = {
     baseURL?: string | ((endpoint: Endpoint) => string);
     /**
      * The name of the API to be referenced in {@link HTTPRequestFactory.createAPIRequest}
+     * If the name is 'default' it will be used as the default API when calling {@link HTTPRequestFactory.createAPIRequest}
+     * with one argument (the name of the endpoint).
      */
-    name: string;
+    name: string | 'default';
     /**
      * Any metadata that should be attached to the API for later reference
      */
@@ -84,7 +96,9 @@ export type APIConfig = {
      * An optional {@link ResponseBodyTransformer} function to be applied to all of
      * the API's responses.
      */
-    responseBodyTransformer?: ResponseBodyTransformer;
+    responseBodyTransformers?: ResponseBodyTransformer | ResponseBodyTransformer[];
+    requestInterceptors?: RequestInterceptor | Array<RequestInterceptor>;
+    errorInterceptors?: ErrorInterceptor | Array<ErrorInterceptor>;
     queryParams?: Record<string, QueryParameterValue>;
     /**
      * A map of {@link Endpoint} for the API
@@ -93,4 +107,3 @@ export type APIConfig = {
         [endpointName: string]: Endpoint;
     };
 };
-//# sourceMappingURL=types.d.ts.map

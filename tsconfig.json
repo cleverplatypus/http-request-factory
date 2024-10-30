@@ -5,7 +5,7 @@
         "allowImportingTsExtensions": true,
         "emitDeclarationOnly": true,
         "declaration": true,
-        "outDir": "./dist",
+        "outDir": "./lib",
         "rootDir": "./src",
         "target": "ES6",
         "module": "CommonJS",

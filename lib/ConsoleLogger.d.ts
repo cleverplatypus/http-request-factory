@@ -9,4 +9,3 @@ export default class ConsoleLogger implements ILogger {
     error(message: string, ...args: any[]): void;
     fatal(message: string, ...args: any[]): void;
 }
-//# sourceMappingURL=ConsoleLogger.d.ts.map

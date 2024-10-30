@@ -11,4 +11,3 @@ export default interface ILogger {
     error(message: string, ...args: any[]): void;
     fatal(message: string, ...args: any[]): void;
 }
-//# sourceMappingURL=ILogger.d.ts.map
