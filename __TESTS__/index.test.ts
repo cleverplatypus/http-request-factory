@@ -206,7 +206,7 @@ describe("HTTP Tests", () => {
       });
     });
     await expect(
-      factory.createGETRequest("https://httpstat.us/401").execute()
+      factory.createGETRequest("https://httpbin.org/status/401").execute()
     ).rejects.toThrowError(HTTPError);
     expect(handled).toEqual([true]);
   });
@@ -223,7 +223,7 @@ describe("HTTP Tests", () => {
       },
       endpoints: {
         error: {
-          target: "https://httpstat.us/{{code}}",
+          target: "https://httpbin.org/status/{{code}}",
         },
       },
     });

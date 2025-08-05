@@ -1,4 +1,3 @@
-import deepFreeze from "deep-freeze-strict";
 import ConsoleLogger from "./ConsoleLogger.ts";
 import { TEXT_TYPES } from "./constants.ts";
 import HTTPError from "./HTTPError.ts";
@@ -83,7 +82,7 @@ export class HTTPRequest {
       errorInterceptors: [],
       responseInterceptors: [],
       requestInterceptors: [],
-      responseBodyTransformers : []
+      responseBodyTransformers: [],
     };
   }
 
@@ -272,7 +271,7 @@ export class HTTPRequest {
    * @return {type} The frozen configuration object.
    */
   getConfig() {
-    return deepFreeze(this.config);
+    return JSON.parse(JSON.stringify(this.config));
   }
 
   /**
@@ -597,7 +596,9 @@ export class HTTPRequest {
    * The callback signature is `function(response:Object, requestObj:HttpRequest)`
    * @return {HTTPRequest} - The updated request instance.
    */
-  withResponseInterceptors(...interceptors: ResponseInterceptor[]): HTTPRequest {
+  withResponseInterceptors(
+    ...interceptors: ResponseInterceptor[]
+  ): HTTPRequest {
     this.config.responseInterceptors.push(...interceptors);
     return this;
   }
